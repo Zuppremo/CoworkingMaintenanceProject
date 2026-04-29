@@ -1,3 +1,6 @@
 <Solution>
+  <Project Path="Coworking.Shared/Coworking.Shared.csproj" />
+  <Project Path="CoworkingAdminWeb/CoworkingAdminWeb.csproj" />
   <Project Path="CoworkingAPI/CoworkingAPI.csproj" />
+  <Project Path="CoworkingMobile/CoworkingMobile.csproj" />
 </Solution>
