@@ -8,9 +8,9 @@ public class IssueReportDto
     public string IssueDescription { get; set; } = string.Empty;
     public ReportStatus Status { get; set; }
     
-    public DateTime GenerationDate { get; set; }
-    public DateTime? AttentionDate { get; set; }
-    public DateTime? ResolutionDate { get; set; }
+    public DateTimeOffset GenerationDate { get; set; }
+    public DateTimeOffset? AttentionDate { get; set; }
+    public DateTimeOffset? ResolutionDate { get; set; }
     
     public Guid RestroomId { get; set; }
     public AssetType AssetType { get; set; }

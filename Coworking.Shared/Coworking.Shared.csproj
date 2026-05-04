@@ -6,4 +6,10 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <Reference Include="MessagePack.Annotations">
+        <HintPath>..\..\..\.nuget\packages\messagepack.annotations\2.5.187\lib\netstandard2.0\MessagePack.Annotations.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
 </Project>

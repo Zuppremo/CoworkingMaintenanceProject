@@ -1,14 +1,23 @@
 using Coworking.Shared.Enums;
+using MessagePack;
 
-namespace Coworking.Shared.Models.DTOs.Building;
+namespace Coworking.Shared.Models.DTOs.Telemetry;
 
-public class RestroomAssetDto
+[MessagePackObject]
+public readonly record struct RestroomAssetDto
 {
-    public Guid Id { get; set; }
-    public AssetType  Type { get; set; }
+    [Key(0)]
+    public Guid Id { get; init; }
     
-    public int PositionX { get; set; }
-    public int PositionY { get; set; }
+    [Key(1)]
+    public AssetType  Type { get; init; }
     
-    public bool HasActiveIssue { get; set; }
+    [Key(2)]
+    public short PositionX { get; init; }
+    
+    [Key(3)]
+    public short PositionY { get; init; }
+    
+    [Key(4)]
+    public bool HasActiveIssue { get; init; }
 }

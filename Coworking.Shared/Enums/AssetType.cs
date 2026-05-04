@@ -7,3 +7,9 @@ public enum AssetType
     PaperDispenser = 2,
     HandDryer = 3
 }
+
+public enum MountingLayer : byte
+{
+    Floor = 0, 
+    Wall = 1
+}
