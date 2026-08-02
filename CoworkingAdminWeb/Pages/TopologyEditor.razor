@@ -1,0 +1,127 @@
+@page "/"
+@page "/topology-editor"
+@inject CoworkingAdminWeb.Services.GridEditorState GridState
+@inject HttpClient Http
+@using CoworkingAdminWeb.Components
+
+<PageTitle>Editor de Topología de Baños</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row mb-4 align-items-center">
+        <div class="col">
+            <h2 class="mb-0">Editor de Topología (Grid System)</h2>
+            <p class="text-muted">Arrastra y suelta activos para modelar la distribución del baño.</p>
+        </div>
+        <div class="col-auto">
+            <div class="d-flex gap-2 align-items-center bg-light p-2 rounded border">
+                <label class="fw-bold mb-0 ms-2">Ancho:</label>
+                <input type="number" class="form-control form-control-sm" style="width: 70px" @bind="InputWidth" min="5" max="50" />
+                
+                <label class="fw-bold mb-0 ms-2">Alto:</label>
+                <input type="number" class="form-control form-control-sm" style="width: 70px" @bind="InputHeight" min="5" max="50" />
+                
+                <button class="btn btn-sm btn-primary ms-2" @onclick="ApplyDimensions">Aplicar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Palette Column -->
+        <div class="col-auto">
+            <AssetPalette />
+            
+            <div class="mt-4 d-grid gap-2">
+                <button class="btn btn-outline-danger" @onclick="ClearGrid">Limpiar Lienzo</button>
+                <button class="btn btn-success" @onclick="SaveTopology" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span>Guardando...</span>
+                    }
+                    else
+                    {
+                        <span>Guardar Layout</span>
+                    }
+                </button>
+                
+                @if (saveSuccess)
+                {
+                    <div class="alert alert-success mt-2 py-2 px-3 mb-0" role="alert">
+                        ¡Layout guardado correctamente!
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Canvas Column -->
+        <div class="col overflow-auto bg-light rounded border d-flex justify-content-center p-4" style="min-height: 600px;">
+            <GridCanvas CellSize="40" />
+        </div>
+    </div>
+</div>
+
+@code {
+    private int InputWidth = 15;
+    private int InputHeight = 15;
+    private bool isSaving = false;
+    private bool saveSuccess = false;
+
+    protected override void OnInitialized()
+    {
+        InputWidth = GridState.GridWidth;
+        InputHeight = GridState.GridHeight;
+        GridState.OnStateChanged += StateHasChanged;
+    }
+
+    private void ApplyDimensions()
+    {
+        if (InputWidth >= 5 && InputHeight >= 5)
+        {
+            GridState.SetDimensions(InputWidth, InputHeight);
+            GridState.ClearGrid(); // Clear grid on resize to prevent out of bounds
+        }
+    }
+
+    private void ClearGrid()
+    {
+        GridState.ClearGrid();
+        saveSuccess = false;
+    }
+
+    private async Task SaveTopology()
+    {
+        isSaving = true;
+        saveSuccess = false;
+        
+        try
+        {
+            // Simular guardado, en producción esto iría a la API
+            var request = new Coworking.Shared.Models.DTOs.Rest.SyncRestroomTopologyRequest
+            {
+                RestroomId = Guid.NewGuid(), // Hardcoded for demo, normally selected from a list
+                GridWidth = (short)GridState.GridWidth,
+                GridHeight = (short)GridState.GridHeight,
+                Assets = GridState.PlacedAssets.Select(a => new Coworking.Shared.Models.DTOs.Rest.TopologyAssetDto {
+                    Id = a.Id,
+                    Type = a.Type,
+                    PositionX = a.PositionX,
+                    PositionY = a.PositionY
+                }).ToList()
+            };
+
+            // await Http.PostAsJsonAsync("api/BuildingTopology/Sync", request);
+            await Task.Delay(800); // Simulamos red
+            
+            saveSuccess = true;
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        GridState.OnStateChanged -= StateHasChanged;
+    }
+}

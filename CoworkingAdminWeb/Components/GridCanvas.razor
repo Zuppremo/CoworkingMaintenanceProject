@@ -1,0 +1,72 @@
+@using Coworking.Shared.Enums
+@using Coworking.Shared.Models.DTOs.Telemetry
+@implements IDisposable
+@inject CoworkingAdminWeb.Services.GridEditorState GridState
+
+<div class="grid-container border border-2 border-dark d-inline-block bg-white position-relative" style="user-select: none;">
+    <svg width="@(GridState.GridWidth * CellSize)" height="@(GridState.GridHeight * CellSize)">
+        
+        <defs>
+            <pattern id="gridPattern" width="@CellSize" height="@CellSize" patternUnits="userSpaceOnUse">
+                <rect width="@CellSize" height="@CellSize" fill="none" stroke="#e5e7eb" stroke-width="1" />
+            </pattern>
+        </defs>
+
+        <!-- Fondo de cuadrícula -->
+        <rect width="100%" height="100%" fill="url(#gridPattern)" />
+
+        <!-- Celdas interactivas (para poder capturar drop) -->
+        @for (short x = 0; x < GridState.GridWidth; x++)
+        {
+            @for (short y = 0; y < GridState.GridHeight; y++)
+            {
+                var cx = x;
+                var cy = y;
+                <rect width="@CellSize" height="@CellSize" 
+                      x="@(cx * CellSize)" y="@(cy * CellSize)" 
+                      fill="transparent" 
+                      @ondragover:preventDefault="true"
+                      @ondragenter:preventDefault="true"
+                      @ondrop="() => HandleDrop(cx, cy)" />
+            }
+        }
+
+        <!-- Renderizar activos ubicados -->
+        @foreach (var asset in GridState.PlacedAssets)
+        {
+            <g transform="translate(@(asset.PositionX * CellSize), @(asset.PositionY * CellSize))" 
+               @onclick="() => GridState.RemoveAsset(asset.Id)" 
+               style="cursor: pointer;">
+                <!-- Fondo transparente para hacer click -->
+                <rect width="@CellSize" height="@CellSize" fill="transparent" />
+                <AssetIcon Type="asset.Type" CellSize="CellSize" />
+            </g>
+        }
+    </svg>
+</div>
+
+@code {
+    [Parameter]
+    public int CellSize { get; set; } = 40;
+
+    protected override void OnInitialized()
+    {
+        GridState.OnStateChanged += StateHasChanged;
+    }
+
+    private void HandleDrop(short x, short y)
+    {
+        if (GridState.DraggedAssetType != null)
+        {
+            if (x >= 0 && x < GridState.GridWidth && y >= 0 && y < GridState.GridHeight)
+            {
+                GridState.TryPlaceAsset(x, y);
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        GridState.OnStateChanged -= StateHasChanged;
+    }
+}

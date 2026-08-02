@@ -1,0 +1,28 @@
+@using Coworking.Shared.Enums
+@inject CoworkingAdminWeb.Services.GridEditorState GridState
+
+<div class="palette-container p-3 bg-light border rounded" style="width: 250px;">
+    <h5 class="mb-3">Activos (Arrastrar)</h5>
+    <div class="d-flex flex-column gap-3">
+        @foreach (AssetType type in Enum.GetValues(typeof(AssetType)))
+        {
+            <div class="asset-item d-flex align-items-center gap-2 p-2 border rounded bg-white" 
+                 draggable="true" 
+                 @ondragstart="() => OnDragStart(type)"
+                 style="cursor: grab;">
+                
+                <svg width="40" height="40" class="flex-shrink-0">
+                    <AssetIcon Type="@type" CellSize="40" />
+                </svg>
+                <span class="fw-medium">@type.ToString()</span>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private void OnDragStart(AssetType type)
+    {
+        GridState.StartDrag(type);
+    }
+}
