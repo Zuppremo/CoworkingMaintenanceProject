@@ -3,8 +3,8 @@
 @implements IDisposable
 @inject CoworkingAdminWeb.Services.GridEditorState GridState
 
-<div class="grid-container border border-2 border-dark d-inline-block bg-white position-relative" style="user-select: none;">
-    <svg width="@(GridState.GridWidth * CellSize)" height="@(GridState.GridHeight * CellSize)">
+<div class="grid-container border border-2 border-dark d-inline-block bg-white position-relative" style="user-select: none; line-height: 0;">
+    <svg width="@(GridState.GridWidth * CellSize)" height="@(GridState.GridHeight * CellSize)" style="display: block;">
         
         <defs>
             <pattern id="gridPattern" width="@CellSize" height="@CellSize" patternUnits="userSpaceOnUse">
@@ -34,12 +34,16 @@
         <!-- Renderizar activos ubicados -->
         @foreach (var asset in GridState.PlacedAssets)
         {
-            <g transform="translate(@(asset.PositionX * CellSize), @(asset.PositionY * CellSize))" 
-               @onclick="() => GridState.RemoveAsset(asset.Id)" 
-               style="cursor: pointer;">
-                <!-- Fondo transparente para hacer click -->
-                <rect width="@CellSize" height="@CellSize" fill="transparent" />
+            <g transform="translate(@(asset.PositionX * CellSize), @(asset.PositionY * CellSize))">
                 <AssetIcon Type="asset.Type" CellSize="CellSize" />
+                <!-- Usar foreignObject para inyectar un div HTML real que soporta drag and drop sin bugs en SVG -->
+                <foreignObject width="@CellSize" height="@CellSize" x="0" y="0">
+                    <div draggable="true" 
+                         @ondragstart="() => GridState.StartDrag(asset.Type, asset.Id)"
+                         @ondblclick="() => GridState.RemoveAsset(asset.Id)"
+                         style="width: 100%; height: 100%; cursor: grab;">
+                    </div>
+                </foreignObject>
             </g>
         }
     </svg>

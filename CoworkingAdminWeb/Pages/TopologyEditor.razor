@@ -1,76 +1,195 @@
 @page "/"
-@page "/topology-editor"
-@inject CoworkingAdminWeb.Services.GridEditorState GridState
-@inject HttpClient Http
+@page "/topology"
+@using Coworking.Shared.Models.DTOs.Rest
+@using Coworking.Shared.Models.DTOs.Building
+@using CoworkingAdminWeb.Services
 @using CoworkingAdminWeb.Components
+@inject GridEditorState GridState
+@inject HttpClient Http
 
 <PageTitle>Editor de Topología de Baños</PageTitle>
 
 <div class="container-fluid py-4">
-    <div class="row mb-4 align-items-center">
-        <div class="col">
-            <h2 class="mb-0">Editor de Topología (Grid System)</h2>
-            <p class="text-muted">Arrastra y suelta activos para modelar la distribución del baño.</p>
+    <div class="row mb-4 align-items-end">
+        <div class="col-md-3">
+            <h2 class="mb-0">Editor de Topología</h2>
+            <p class="text-muted mb-0">Seleccione un baño para editar su plano.</p>
         </div>
-        <div class="col-auto">
-            <div class="d-flex gap-2 align-items-center bg-light p-2 rounded border">
-                <label class="fw-bold mb-0 ms-2">Ancho:</label>
-                <input type="number" class="form-control form-control-sm" style="width: 70px" @bind="InputWidth" min="5" max="50" />
-                
-                <label class="fw-bold mb-0 ms-2">Alto:</label>
-                <input type="number" class="form-control form-control-sm" style="width: 70px" @bind="InputHeight" min="5" max="50" />
-                
-                <button class="btn btn-sm btn-primary ms-2" @onclick="ApplyDimensions">Aplicar</button>
+        <div class="col-md-9 d-flex gap-3 align-items-end justify-content-end">
+            <!-- Selector Jerárquico -->
+            <div>
+                <label class="form-label mb-0 fw-bold">Edificio</label>
+                <select class="form-select form-select-sm" @onchange="OnBuildingChanged">
+                    <option value="">Seleccione...</option>
+                    @foreach (var b in buildings)
+                    {
+                        <option value="@b.Id">@b.Name</option>
+                    }
+                </select>
             </div>
-        </div>
-    </div>
-
-    <div class="row">
-        <!-- Palette Column -->
-        <div class="col-auto">
-            <AssetPalette />
             
-            <div class="mt-4 d-grid gap-2">
-                <button class="btn btn-outline-danger" @onclick="ClearGrid">Limpiar Lienzo</button>
-                <button class="btn btn-success" @onclick="SaveTopology" disabled="@isSaving">
-                    @if (isSaving)
+            <div>
+                <label class="form-label mb-0 fw-bold">Piso</label>
+                <select class="form-select form-select-sm" @onchange="OnFloorChanged" disabled="@(selectedBuilding == null)">
+                    <option value="">Seleccione...</option>
+                    @if (selectedBuilding != null)
                     {
-                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        <span>Guardando...</span>
+                        @foreach (var f in selectedBuilding.Floors)
+                        {
+                            <option value="@f.Id">Piso @f.FloorNumber</option>
+                        }
                     }
-                    else
-                    {
-                        <span>Guardar Layout</span>
-                    }
-                </button>
-                
-                @if (saveSuccess)
-                {
-                    <div class="alert alert-success mt-2 py-2 px-3 mb-0" role="alert">
-                        ¡Layout guardado correctamente!
-                    </div>
-                }
+                </select>
             </div>
-        </div>
 
-        <!-- Canvas Column -->
-        <div class="col overflow-auto bg-light rounded border d-flex justify-content-center p-4" style="min-height: 600px;">
-            <GridCanvas CellSize="40" />
+            <div>
+                <label class="form-label mb-0 fw-bold">Baño</label>
+                <select class="form-select form-select-sm" @onchange="OnRestroomChanged" disabled="@(selectedFloor == null)">
+                    <option value="">Seleccione...</option>
+                    @if (selectedFloor != null)
+                    {
+                        @foreach (var r in selectedFloor.Restrooms)
+                        {
+                            <option value="@r.Id">@r.Identifier</option>
+                        }
+                    }
+                </select>
+            </div>
+            
+            <!-- Configurador de Dimensiones (Solo si hay baño seleccionado) -->
+            @if (selectedRestroomId.HasValue)
+            {
+                <div class="d-flex gap-2 align-items-center bg-light p-2 rounded border">
+                    <label class="fw-bold mb-0 ms-2">Ancho:</label>
+                    <input type="number" class="form-control form-control-sm" style="width: 60px" @bind="InputWidth" min="5" max="50" />
+                    
+                    <label class="fw-bold mb-0 ms-2">Alto:</label>
+                    <input type="number" class="form-control form-control-sm" style="width: 60px" @bind="InputHeight" min="5" max="50" />
+                    
+                    <button class="btn btn-sm btn-primary ms-2" @onclick="ApplyDimensions">Aplicar</button>
+                </div>
+            }
         </div>
     </div>
+
+    @if (selectedRestroomId.HasValue)
+    {
+        <div class="row">
+            <!-- Palette Column -->
+            <div class="col-auto">
+                <AssetPalette />
+                
+                <div class="mt-4 d-grid gap-2">
+                    <button class="btn btn-outline-danger" @onclick="ClearGrid">Limpiar Lienzo</button>
+                    <button class="btn btn-success" @onclick="SaveTopology" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span>Guardando...</span>
+                        }
+                        else
+                        {
+                            <span>Guardar Layout</span>
+                        }
+                    </button>
+                    
+                    @if (saveSuccess)
+                    {
+                        <div class="alert alert-success mt-2 py-2 px-3 mb-0" role="alert">
+                            ¡Layout guardado correctamente!
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Canvas Column -->
+            <div class="col overflow-auto bg-light rounded border d-flex justify-content-center p-4" style="min-height: 600px;">
+                <GridCanvas CellSize="40" />
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info text-center mt-5">
+            Seleccione un edificio, un piso y un baño en la parte superior para comenzar a editar su plano topológico.
+        </div>
+    }
 </div>
 
 @code {
+    private List<BuildingDto> buildings = new();
+    private BuildingDto? selectedBuilding;
+    private FloorDto? selectedFloor;
+    private Guid? selectedRestroomId;
+
     private int InputWidth = 15;
     private int InputHeight = 15;
     private bool isSaving = false;
     private bool saveSuccess = false;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         InputWidth = GridState.GridWidth;
         InputHeight = GridState.GridHeight;
         GridState.OnStateChanged += StateHasChanged;
+        
+        buildings = await Http.GetFromJsonAsync<List<BuildingDto>>("api/Hierarchy") ?? new();
+    }
+
+    private void OnBuildingChanged(ChangeEventArgs e)
+    {
+        selectedFloor = null;
+        selectedRestroomId = null;
+        if (Guid.TryParse(e.Value?.ToString(), out Guid id))
+            selectedBuilding = buildings.FirstOrDefault(b => b.Id == id);
+        else
+            selectedBuilding = null;
+    }
+
+    private void OnFloorChanged(ChangeEventArgs e)
+    {
+        selectedRestroomId = null;
+        if (Guid.TryParse(e.Value?.ToString(), out Guid id) && selectedBuilding != null)
+            selectedFloor = selectedBuilding.Floors.FirstOrDefault(f => f.Id == id);
+        else
+            selectedFloor = null;
+    }
+
+    private async Task OnRestroomChanged(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out Guid id))
+        {
+            selectedRestroomId = id;
+            await LoadExistingLayout(id);
+        }
+        else
+        {
+            selectedRestroomId = null;
+            GridState.ClearGrid();
+        }
+    }
+
+    private async Task LoadExistingLayout(Guid id)
+    {
+        try
+        {
+            var layout = await Http.GetFromJsonAsync<RestroomLayoutDto>($"api/Topology/{id}");
+            if (layout != null)
+            {
+                InputWidth = layout.GridWidth > 5 ? layout.GridWidth : 15;
+                InputHeight = layout.GridHeight > 5 ? layout.GridHeight : 15;
+                GridState.LoadState(InputWidth, InputHeight, layout.Assets);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading layout: {ex.Message}");
+            // Probably a 404 (no layout yet), start fresh
+            InputWidth = 15;
+            InputHeight = 15;
+            GridState.LoadState(15, 15, new());
+        }
     }
 
     private void ApplyDimensions()
@@ -90,15 +209,16 @@
 
     private async Task SaveTopology()
     {
+        if (!selectedRestroomId.HasValue) return;
+
         isSaving = true;
         saveSuccess = false;
         
         try
         {
-            // Simular guardado, en producción esto iría a la API
             var request = new Coworking.Shared.Models.DTOs.Rest.SyncRestroomTopologyRequest
             {
-                RestroomId = Guid.NewGuid(), // Hardcoded for demo, normally selected from a list
+                RestroomId = selectedRestroomId.Value,
                 GridWidth = (short)GridState.GridWidth,
                 GridHeight = (short)GridState.GridHeight,
                 Assets = GridState.PlacedAssets.Select(a => new Coworking.Shared.Models.DTOs.Rest.TopologyAssetDto {
@@ -109,10 +229,17 @@
                 }).ToList()
             };
 
-            // await Http.PostAsJsonAsync("api/BuildingTopology/Sync", request);
-            await Task.Delay(800); // Simulamos red
+            var response = await Http.PostAsJsonAsync("api/Topology/sync", request);
             
-            saveSuccess = true;
+            if (response.IsSuccessStatusCode)
+            {
+                saveSuccess = true;
+            }
+            else
+            {
+                var errorStr = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error guardando topología: {errorStr}");
+            }
         }
         finally
         {

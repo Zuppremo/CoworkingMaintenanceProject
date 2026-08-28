@@ -56,13 +56,16 @@ public class SyncRestroomTopologyCommandHandler
         var assetsToRemove = restroom.Assets.Where(existing => !incomingIds.Contains(existing.Id)).ToList();
         foreach (var asset in assetsToRemove)
         {
-            context.RestroomAssets.Remove(asset); 
+            asset.IsDeleted = true;
+            context.Entry(asset).State = EntityState.Modified;
             pendingCacheRemovals.Add(asset.Id);
         }
 
         foreach (var incoming in request.Assets)
         {
-            if (!incoming.Id.HasValue)
+            var existing = restroom.Assets.FirstOrDefault(a => a.Id == incoming.Id);
+            
+            if (existing == null)
             {
                 RestroomAsset newAsset = incoming.Type switch
                 {
@@ -73,16 +76,17 @@ public class SyncRestroomTopologyCommandHandler
                     _ => throw new InvalidOperationException("Unknown asset type")
                 };
 
+                if (incoming.Id.HasValue) newAsset.Id = incoming.Id.Value;
+                
                 newAsset.PositionX = incoming.PositionX;
                 newAsset.PositionY = incoming.PositionY;
+                newAsset.RestroomId = request.RestroomId;
                 
-                restroom.Assets.Add(newAsset);
+                context.RestroomAssets.Add(newAsset);
                 pendingCacheAdditions.Add(newAsset.Id);
             }
             else
             {
-                var existing = restroom.Assets.FirstOrDefault(a => a.Id == incoming.Id);
-                if (existing == null) continue;
                 existing.PositionX = incoming.PositionX;
                 existing.PositionY = incoming.PositionY;
             }

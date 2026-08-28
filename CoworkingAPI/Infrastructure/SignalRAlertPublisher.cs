@@ -9,7 +9,7 @@ public class SignalRAlertPublisher : IAlertPublisher
 {
     private readonly IHubContext<AlertTelemetryHub> hubContext;
 
-    private SignalRAlertPublisher(IHubContext<AlertTelemetryHub> hubContext)
+    public SignalRAlertPublisher(IHubContext<AlertTelemetryHub> hubContext)
     {
         this.hubContext = hubContext;
     }

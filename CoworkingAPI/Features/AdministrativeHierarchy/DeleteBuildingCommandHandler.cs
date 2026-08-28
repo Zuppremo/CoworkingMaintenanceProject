@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using CoworkingAPI.Data;
 using CoworkingAPI.Features.BuildingTopology;
 using Microsoft.EntityFrameworkCore;
@@ -50,8 +51,14 @@ public class DeleteBuildingCommandHandler
                 await context.IssueReports.Where(ir => assetIdsToEvict.Contains(ir.RestroomAssetId))
                     .ExecuteUpdateAsync(s => s.SetProperty(p => p.IsDeleted, true));
                 
-                await  context.RestroomAssets.Where(a => restroomIds.Contains(a.RestroomId)).
+                await context.RestroomAssets.Where(a => restroomIds.Contains(a.RestroomId)).
                     ExecuteUpdateAsync(s => s.SetProperty(p => p.IsDeleted, true));
+            }
+            
+            if (restroomIds.Any())
+            {
+                await context.Restrooms.Where(r => restroomIds.Contains(r.Id))
+                    .ExecuteUpdateAsync(s => s.SetProperty(p => p.IsDeleted, true));
             }
             
             await context.Floors.Where(f => f.BuildingId == buildingId).
@@ -69,6 +76,7 @@ public class DeleteBuildingCommandHandler
         catch (Exception e)
         {
             await transaction.RollbackAsync();
+            Debug.WriteLine(e.Message);
             throw;
         }
     }

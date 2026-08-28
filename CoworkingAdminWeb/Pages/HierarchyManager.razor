@@ -1,0 +1,220 @@
+@page "/hierarchy"
+@using Coworking.Shared.Models.DTOs.Building
+@using Coworking.Shared.Models.DTOs.Rest
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+<PageTitle>Gestión de Infraestructura</PageTitle>
+
+<div class="container-fluid mt-4">
+    <h2>Gestión de Jerarquía (Edificios > Pisos > Baños)</h2>
+    <hr />
+
+    <div class="row">
+        <!-- Lista de Edificios -->
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Edificios</h5>
+                    <button class="btn btn-sm btn-light" @onclick="() => showNewBuilding = true">+</button>
+                </div>
+                <div class="card-body p-0">
+                    @if (showNewBuilding)
+                    {
+                        <div class="p-2 border-bottom bg-light">
+                            <input @bind="newBuildingName" class="form-control form-control-sm mb-1" placeholder="Nombre (Ej. Norte)" />
+                            <div class="d-flex justify-content-end gap-1">
+                                <button class="btn btn-sm btn-secondary" @onclick="() => showNewBuilding = false">Cancelar</button>
+                                <button class="btn btn-sm btn-success" @onclick="CreateBuilding">Crear</button>
+                            </div>
+                        </div>
+                    }
+
+                    <ul class="list-group list-group-flush">
+                        @foreach (var building in buildings)
+                        {
+                            <li class="list-group-item list-group-item-action d-flex justify-content-between align-items-center @(selectedBuilding?.Id == building.Id ? "active" : "")"
+                                style="cursor: pointer" @onclick="() => SelectBuilding(building)">
+                                @building.Name
+                                <button class="btn btn-sm btn-danger py-0 px-2" @onclick="() => DeleteBuilding(building.Id)" @onclick:stopPropagation="true">X</button>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Pisos -->
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Pisos @(selectedBuilding != null ? $"({selectedBuilding.Name})" : "")</h5>
+                    @if (selectedBuilding != null)
+                    {
+                        <button class="btn btn-sm btn-light" @onclick="() => showNewFloor = true">+</button>
+                    }
+                </div>
+                <div class="card-body p-0">
+                    @if (showNewFloor)
+                    {
+                        <div class="p-2 border-bottom bg-light">
+                            <input type="number" @bind="newFloorNumber" class="form-control form-control-sm mb-1" placeholder="Nivel (Ej. 1)" />
+                            <div class="d-flex justify-content-end gap-1">
+                                <button class="btn btn-sm btn-secondary" @onclick="() => showNewFloor = false">Cancelar</button>
+                                <button class="btn btn-sm btn-success" @onclick="CreateFloor">Crear</button>
+                            </div>
+                        </div>
+                    }
+
+                    @if (selectedBuilding != null)
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var floor in selectedBuilding.Floors)
+                            {
+                                <li class="list-group-item list-group-item-action @(selectedFloor?.Id == floor.Id ? "active" : "")"
+                                    style="cursor: pointer" @onclick="() => SelectFloor(floor)">
+                                    Piso @floor.FloorNumber
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <div class="p-3 text-muted text-center">Seleccione un Edificio</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Baños -->
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Baños @(selectedFloor != null ? $"(Piso {selectedFloor.FloorNumber})" : "")</h5>
+                    @if (selectedFloor != null)
+                    {
+                        <button class="btn btn-sm btn-light" @onclick="() => showNewRestroom = true">+</button>
+                    }
+                </div>
+                <div class="card-body p-0">
+                    @if (showNewRestroom)
+                    {
+                        <div class="p-2 border-bottom bg-light">
+                            <input @bind="newRestroomIdentifier" class="form-control form-control-sm mb-1" placeholder="Ej. Hombres Sur" />
+                            <div class="d-flex justify-content-end gap-1">
+                                <button class="btn btn-sm btn-secondary" @onclick="() => showNewRestroom = false">Cancelar</button>
+                                <button class="btn btn-sm btn-success" @onclick="CreateRestroom">Crear</button>
+                            </div>
+                        </div>
+                    }
+
+                    @if (selectedFloor != null)
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var restroom in selectedFloor.Restrooms)
+                            {
+                                <li class="list-group-item">
+                                    @restroom.Identifier
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <div class="p-3 text-muted text-center">Seleccione un Piso</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<BuildingDto> buildings = new();
+    
+    private BuildingDto? selectedBuilding;
+    private FloorDto? selectedFloor;
+
+    private bool showNewBuilding = false;
+    private string newBuildingName = "";
+
+    private bool showNewFloor = false;
+    private int newFloorNumber = 1;
+
+    private bool showNewRestroom = false;
+    private string newRestroomIdentifier = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHierarchy();
+    }
+
+    private async Task LoadHierarchy()
+    {
+        buildings = await Http.GetFromJsonAsync<List<BuildingDto>>("api/Hierarchy") ?? new();
+        
+        // Mantener selección si se refresca
+        if (selectedBuilding != null)
+        {
+            selectedBuilding = buildings.FirstOrDefault(b => b.Id == selectedBuilding.Id);
+            if (selectedFloor != null && selectedBuilding != null)
+            {
+                selectedFloor = selectedBuilding.Floors.FirstOrDefault(f => f.Id == selectedFloor.Id);
+            }
+        }
+    }
+
+    private void SelectBuilding(BuildingDto building)
+    {
+        selectedBuilding = building;
+        selectedFloor = null;
+    }
+
+    private void SelectFloor(FloorDto floor)
+    {
+        selectedFloor = floor;
+    }
+
+    private async Task CreateBuilding()
+    {
+        if (string.IsNullOrWhiteSpace(newBuildingName)) return;
+        
+        var request = new CreateBuildingRequest { Name = newBuildingName };
+        await Http.PostAsJsonAsync("api/Hierarchy/buildings", request);
+        
+        newBuildingName = "";
+        showNewBuilding = false;
+        await LoadHierarchy();
+    }
+
+    private async Task DeleteBuilding(Guid id)
+    {
+        await Http.DeleteAsync($"api/Hierarchy/buildings/{id}");
+        if (selectedBuilding?.Id == id) selectedBuilding = null;
+        await LoadHierarchy();
+    }
+
+    private async Task CreateFloor()
+    {
+        if (selectedBuilding == null) return;
+        
+        var request = new CreateFloorRequest { FloorNumber = newFloorNumber, BuildingId = selectedBuilding.Id };
+        await Http.PostAsJsonAsync("api/Hierarchy/floors", request);
+        
+        newFloorNumber++;
+        showNewFloor = false;
+        await LoadHierarchy();
+    }
+
+    private async Task CreateRestroom()
+    {
+        if (selectedFloor == null || string.IsNullOrWhiteSpace(newRestroomIdentifier)) return;
+        
+        var request = new CreateRestroomRequest { Identifier = newRestroomIdentifier, FloorId = selectedFloor.Id };
+        await Http.PostAsJsonAsync("api/Hierarchy/restrooms", request);
+        
+        newRestroomIdentifier = "";
+        showNewRestroom = false;
+        await LoadHierarchy();
+    }
+}

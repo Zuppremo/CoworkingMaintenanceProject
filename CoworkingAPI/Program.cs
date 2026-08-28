@@ -4,6 +4,7 @@ using CoworkingAPI.Features.BuildingTopology;
 using CoworkingAPI.Hubs;
 using CoworkingAPI.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using CoworkingAPI.Features.AdministrativeHierarchy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,8 +19,33 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddSingleton<ITopologyCache, TopologyCache>();
 builder.Services.AddHostedService<TopologyCacheWarmer>();
 builder.Services.AddTransient<IAlertPublisher, SignalRAlertPublisher>();
+
+builder.Services.AddScoped<CoworkingAPI.Features.BuildingTopology.SyncTopology.SyncRestroomTopologyCommandHandler>();
+builder.Services.AddScoped<CoworkingAPI.Features.BuildingTopology.SyncTopology.GetRestroomTopologyQueryHandler>();
+builder.Services.AddScoped<CoworkingAPI.Features.IssueReports.CreateIssueReportCommandHandler>();
+
+// Hierarchy Handlers
+builder.Services.AddScoped<CreateBuildingCommandHandler>();
+builder.Services.AddScoped<DeleteBuildingCommandHandler>();
+builder.Services.AddScoped<CreateFloorCommandHandler>();
+builder.Services.AddScoped<CreateRestroomCommandHandler>();
+builder.Services.AddScoped<GetHierarchyQueryHandler>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.SetIsOriginAllowed(_ => true)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); // SignalR needs credentials (can't use AllowAnyOrigin with AllowCredentials)
+    });
+});
+
 builder.Services.AddControllers();
 var app = builder.Build();
+
+app.UseCors("AllowAll");
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

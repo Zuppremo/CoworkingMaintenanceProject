@@ -4,7 +4,7 @@ using MessagePack;
 namespace Coworking.Shared.Models.DTOs.Telemetry;
 
 [MessagePackObject]
-public readonly record struct RestroomAssetDto
+public record RestroomAssetDto
 {
     [Key(0)]
     public Guid Id { get; init; }

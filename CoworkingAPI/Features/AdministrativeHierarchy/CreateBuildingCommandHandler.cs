@@ -15,24 +15,4 @@ public class CreateBuildingCommandHandler(AppDbContext context)
     }
 }
 
-public class CreateFloorCommandHandler(AppDbContext context)
-{
-    public async Task<Guid> ExecuteAsync(CreateFloorRequest request)
-    {
-        Floor floor = new Floor { FloorNumber = request.FloorNumber, BuildingId = request.BuildingId };
-        context.Floors.Add(floor);
-        await context.SaveChangesAsync();
-        return floor.Id;
-    }
-}
 
-public class CreateRestroomCommandHandler(AppDbContext context)
-{
-    public async Task<Guid> ExecuteAsync(CreateRestroomRequest request)
-    {
-        Restroom restroom = new Restroom { Identifier = request.Identifier, FloorId = request.FloorId };
-        context.Restrooms.Add(restroom);
-        await context.SaveChangesAsync();
-        return restroom.Id;
-    }
-}
