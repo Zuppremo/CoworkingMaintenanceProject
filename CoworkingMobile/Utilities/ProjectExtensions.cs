@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using CoworkingMobile.Models;
 
 namespace CoworkingMobile.Utilities;
 
@@ -13,8 +12,8 @@ public static class ProjectExtensions
     /// </summary>
     /// <param name="project"></param>
     /// <returns></returns>
-    public static bool IsNullOrNew([NotNullWhen(false)] this Project? project)
+    /*public static bool IsNullOrNew([NotNullWhen(false)] this Project? project)
     {
         return project is null || project.ID == 0;
-    }
+    }*/
 }

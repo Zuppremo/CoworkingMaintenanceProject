@@ -1,0 +1,325 @@
+@page "/report"
+@page "/report/{RestroomIdParam:guid}"
+@using Coworking.Shared.Enums
+@using Coworking.Shared.Models.DTOs
+@using Coworking.Shared.Models.DTOs.Building
+@using Coworking.Shared.Models.DTOs.Telemetry
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<div class="container py-4" style="max-width: 600px;">
+    
+    <!-- Encabezado con estética limpia para celular -->
+    <div class="text-center mb-4">
+        <div class="display-5 mb-2">🚽 📱</div>
+        <h3 class="fw-bold text-dark mb-1">Reporte Rápido de Baño</h3>
+        <p class="text-muted small">Escaneo QR • Coworking Maintenance</p>
+    </div>
+
+    @if (isSuccess)
+    {
+        <div class="card border-0 shadow-sm text-center p-4 bg-white rounded-4">
+            <div class="display-3 text-success mb-3">✅</div>
+            <h4 class="fw-bold text-success mb-2">¡Reporte Enviado!</h4>
+            <p class="text-muted mb-4">
+                El equipo de limpieza y mantenimiento ha recibido la alerta en tiempo real en su aplicación móvil.
+            </p>
+            <button class="btn btn-outline-primary rounded-pill px-4 py-2" @onclick="ResetForm">
+                Hacer otro reporte
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm p-4 bg-white rounded-4">
+            @if (isLoading)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <p class="text-muted">Cargando información del baño...</p>
+                </div>
+            }
+            else
+            {
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger py-2 small mb-3">
+                        @errorMessage
+                    </div>
+                }
+
+                <!-- Selector de Baño (si no vino pre-configurado en el QR) -->
+                @if (RestroomIdParam == null && hierarchyList != null)
+                {
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">1. Selecciona el Baño:</label>
+                        <select class="form-select" @onchange="OnRestroomDropdownChanged">
+                            <option value="">-- Elige un baño --</option>
+                            @foreach (var building in hierarchyList)
+                            {
+                                <optgroup label="🏢 @building.Name">
+                                    @foreach (var floor in building.Floors)
+                                    {
+                                        @foreach (var restroom in floor.Restrooms)
+                                        {
+                                            <option value="@restroom.Id">
+                                                Piso @floor.FloorNumber - @restroom.Identifier
+                                            </option>
+                                        }
+                                    }
+                                </optgroup>
+                            }
+                        </select>
+                    </div>
+                }
+                else if (currentLayout != null)
+                {
+                    <div class="alert alert-light border d-flex align-items-center gap-2 py-2 mb-3">
+                        <span class="fs-5">📍</span>
+                        <div>
+                            <div class="fw-bold small text-dark">@currentLayout.Identifier</div>
+                            <div class="text-muted small">Baño preseleccionado por QR</div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Selector de Elemento del Baño -->
+                @if (currentLayout != null && currentLayout.Assets.Any())
+                {
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">2. ¿Qué elemento tiene la falla?</label>
+                        <div class="d-grid gap-2">
+                            @foreach (var asset in currentLayout.Assets)
+                            {
+                                var isSelected = selectedAssetId == asset.Id;
+                                <button type="button" 
+                                        class="btn text-start p-3 rounded-3 d-flex align-items-center justify-content-between @(isSelected ? "btn-primary shadow-sm" : "btn-outline-secondary")"
+                                        @onclick="() => SelectAsset(asset.Id)">
+                                    <span class="d-flex align-items-center gap-2">
+                                        <span class="fs-4">@GetAssetIcon(asset.Type)</span>
+                                        <span class="fw-bold">@GetAssetLabel(asset.Type, asset.PositionX, asset.PositionY)</span>
+                                    </span>
+                                    @if (isSelected)
+                                    {
+                                        <span>✓</span>
+                                    }
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Botones de Fallas Comunes -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-secondary">3. ¿Cuál es el problema?</label>
+                        <div class="d-flex flex-wrap gap-2 mb-2">
+                            @foreach (var reason in commonReasons)
+                            {
+                                var isSelected = selectedReason == reason;
+                                <button type="button" 
+                                        class="btn btn-sm rounded-pill px-3 py-2 @(isSelected ? "btn-dark" : "btn-light border text-secondary")"
+                                        @onclick="() => SelectReason(reason)">
+                                    @reason
+                                </button>
+                            }
+                        </div>
+
+                        <!-- Campo de texto opcional -->
+                        <input type="text" 
+                               class="form-control mt-2" 
+                               placeholder="O escribe otro detalle aquí..." 
+                               @bind="customDescription" />
+                    </div>
+
+                    <!-- Botón Enviar -->
+                    <button class="btn btn-danger w-100 py-3 rounded-pill fw-bold fs-5 shadow" 
+                            disabled="@(selectedAssetId == null || (string.IsNullOrWhiteSpace(selectedReason) && string.IsNullOrWhiteSpace(customDescription)) || isSubmitting)"
+                            @onclick="SubmitReport">
+                        @if (isSubmitting)
+                        {
+                            <span>Enviando reporte...</span>
+                        }
+                        else
+                        {
+                            <span>🚨 Enviar Reporte</span>
+                        }
+                    </button>
+                }
+                else if (currentLayout != null && !currentLayout.Assets.Any())
+                {
+                    <div class="alert alert-warning py-3 small text-center">
+                        Este baño no tiene activos registrados aún en el plano.
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid? RestroomIdParam { get; set; }
+
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+    private bool isSuccess = false;
+    private string errorMessage = string.Empty;
+
+    private List<BuildingDto>? hierarchyList;
+    private RestroomLayoutDto? currentLayout;
+    private Guid? selectedAssetId;
+    private string selectedReason = string.Empty;
+    private string customDescription = string.Empty;
+
+    private readonly string[] commonReasons = new[]
+    {
+        "🧻 Sin papel higiénico",
+        "🧼 Sin jabón de manos",
+        "⚠️ Inodoro tapado / averiado",
+        "🧹 Requiere aseo urgente",
+        "💧 Fuga continua de agua",
+        "💨 Secador no enciende"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            if (RestroomIdParam.HasValue)
+            {
+                await LoadRestroomLayoutAsync(RestroomIdParam.Value);
+            }
+            else
+            {
+                hierarchyList = await Http.GetFromJsonAsync<List<BuildingDto>>("api/Hierarchy");
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error cargando datos: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OnRestroomDropdownChanged(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out Guid restroomId))
+        {
+            await LoadRestroomLayoutAsync(restroomId);
+        }
+        else
+        {
+            currentLayout = null;
+            selectedAssetId = null;
+        }
+    }
+
+    private async Task LoadRestroomLayoutAsync(Guid id)
+    {
+        try
+        {
+            currentLayout = await Http.GetFromJsonAsync<RestroomLayoutDto>($"api/Topology/{id}");
+            selectedAssetId = currentLayout?.Assets.FirstOrDefault()?.Id;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"No se pudo cargar el diseño de este baño: {ex.Message}";
+        }
+    }
+
+    private void SelectAsset(Guid id)
+    {
+        selectedAssetId = id;
+    }
+
+    private void SelectReason(string reason)
+    {
+        selectedReason = reason;
+        customDescription = string.Empty;
+    }
+
+    private async Task SubmitReport()
+    {
+        if (!selectedAssetId.HasValue) return;
+
+        var description = !string.IsNullOrWhiteSpace(customDescription) 
+            ? customDescription 
+            : selectedReason;
+
+        if (string.IsNullOrWhiteSpace(description)) return;
+
+        isSubmitting = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var request = new CreateIssueReportRequest
+            {
+                RestroomAssetId = selectedAssetId.Value,
+                IssueDescription = description,
+                ReportingUserId = "coworker-qr-web"
+            };
+
+            var response = await Http.PostAsJsonAsync("api/IssueReports", request);
+            if (response.IsSuccessStatusCode)
+            {
+                isSuccess = true;
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                var errorObj = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+                errorMessage = errorObj != null && errorObj.TryGetValue("error", out var msg) 
+                    ? $"⚠️ {msg}" 
+                    : "⚠️ Este elemento ya tiene un reporte activo pendiente de atención.";
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                errorMessage = $"No se pudo enviar el reporte: {error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error de red: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void ResetForm()
+    {
+        isSuccess = false;
+        selectedReason = string.Empty;
+        customDescription = string.Empty;
+    }
+
+    private string GetAssetIcon(AssetType type) => type switch
+    {
+        AssetType.Toilet => "🚽",
+        AssetType.Sink => "🚰",
+        AssetType.HandDryer => "💨",
+        AssetType.PaperDispenser => "🧻",
+        _ => "🔧"
+    };
+
+    private string GetAssetLabel(AssetType type, short x, short y) => type switch
+    {
+        AssetType.Toilet => $"Inodoro (Pos: {x},{y})",
+        AssetType.Sink => $"Lavamanos (Pos: {x},{y})",
+        AssetType.HandDryer => $"Secador de manos",
+        AssetType.PaperDispenser => $"Dispensador de papel",
+        _ => $"Activo ({x},{y})"
+    };
+}

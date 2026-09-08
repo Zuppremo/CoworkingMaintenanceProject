@@ -1,13 +1,21 @@
-﻿using CoworkingMobile.Models;
-using CoworkingMobile.PageModels;
+using CoworkingMobile.ViewModels;
 
 namespace CoworkingMobile.Pages;
 
 public partial class MainPage : ContentPage
 {
-    public MainPage(MainPageModel model)
+    private readonly CleaningDashboardViewModel viewModel;
+
+    public MainPage(CleaningDashboardViewModel viewModel)
     {
         InitializeComponent();
-        BindingContext = model;
+        this.viewModel = viewModel;
+        BindingContext = viewModel;
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        await viewModel.InitializeAsync();
     }
 }

@@ -1,103 +1,150 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:pageModels="clr-namespace:CoworkingMobile.PageModels"             
-             xmlns:models="clr-namespace:CoworkingMobile.Models"
-             xmlns:controls="clr-namespace:CoworkingMobile.Pages.Controls"
-             xmlns:pullToRefresh="clr-namespace:Syncfusion.Maui.Toolkit.PullToRefresh;assembly=Syncfusion.Maui.Toolkit"
-             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:vm="clr-namespace:CoworkingMobile.ViewModels"
              x:Class="CoworkingMobile.Pages.MainPage"
-             x:DataType="pageModels:MainPageModel"
-             x:Name="OverviewPage"
-             Title="{Binding Today}">
+             x:DataType="vm:CleaningDashboardViewModel"
+             Title="Panel de Aseo"
+             BackgroundColor="#F4F6F9">
 
-    <ContentPage.Behaviors>
-        <toolkit:EventToCommandBehavior
-                BindingContext="{Binding Path=BindingContext, Source={x:Reference OverviewPage}, x:DataType=ContentPage}"
-                EventName="NavigatedTo"
-                Command="{Binding NavigatedToCommand}" />
-        <toolkit:EventToCommandBehavior
-                BindingContext="{Binding Path=BindingContext, Source={x:Reference OverviewPage}, x:DataType=ContentPage}"
-                EventName="NavigatedFrom"
-                Command="{Binding NavigatedFromCommand}" />
-        <toolkit:EventToCommandBehavior
-                BindingContext="{Binding Path=BindingContext, Source={x:Reference OverviewPage}, x:DataType=ContentPage}"
-                EventName="Appearing"                
-                Command="{Binding AppearingCommand}" />
-    </ContentPage.Behaviors>
+    <Grid RowDefinitions="Auto, *">
+        <!-- Header con Estado de Conexión y Conteo -->
+        <Border Grid.Row="0" BackgroundColor="#1E293B" Padding="16, 12" StrokeShape="RoundRectangle 0,0,16,16" StrokeThickness="0">
+            <VerticalStackLayout Spacing="6">
+                <Grid ColumnDefinitions="*, Auto">
+                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                        <Label Text="🧹" FontSize="22" VerticalOptions="Center" />
+                        <Label Text="Panel de Limpieza" FontSize="20" FontAttributes="Bold" TextColor="White" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                    
+                    <!-- Contador de Incidencias -->
+                    <Border Grid.Column="1" BackgroundColor="#E02424" Padding="10, 4" StrokeShape="RoundRectangle 12" StrokeThickness="0">
+                        <Label Text="{Binding ActiveCount, StringFormat='{0} pendientes'}" TextColor="White" FontAttributes="Bold" FontSize="12" />
+                    </Border>
+                </Grid>
 
-    <ContentPage.Resources>
-        <ResourceDictionary>
-            <toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter" />
-        </ResourceDictionary>
-    </ContentPage.Resources>
+                <!-- Indicador de conexión SignalR -->
+                <Label Text="{Binding ConnectionStatusText}" 
+                       FontSize="11" 
+                       TextColor="{Binding ConnectionColor}" 
+                       FontAttributes="Bold" />
+            </VerticalStackLayout>
+        </Border>
 
-    <Grid>
-        <pullToRefresh:SfPullToRefresh
-            IsRefreshing="{Binding IsRefreshing}"
-            RefreshCommand="{Binding RefreshCommand}">
-            <pullToRefresh:SfPullToRefresh.PullableContent>
-                <ScrollView>
-                    <Grid Padding="{StaticResource LayoutPadding}" RowSpacing="{StaticResource LayoutSpacing}">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <Label Grid.Row="0" Text="Task Categories" Style="{StaticResource Title2}" SemanticProperties.HeadingLevel="Level1"/>
-                        <controls:CategoryChart Grid.Row="1" />
-                        <Label Grid.Row="2" Text="Projects" Style="{StaticResource Title2}" SemanticProperties.HeadingLevel="Level1"/>
-                        <CollectionView Grid.Row="3" ItemsSource="{Binding Projects}"
-                                        Margin="-7.5,0"
-                                        MinimumHeightRequest="250"
-                                        x:Name="ProjectsCollectionView"
-                                        SelectionMode="Single"
-                                        SelectedItem="{Binding SelectedProject}"
-                                        SelectionChangedCommand="{Binding NavigateToProjectCommand, Source={RelativeSource AncestorType={x:Type pageModels:MainPageModel}}, x:DataType=pageModels:MainPageModel}"
-                                        SelectionChangedCommandParameter="{Binding SelectedProject}">
-                            <CollectionView.ItemsLayout>
-                                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="7.5"/>
-                            </CollectionView.ItemsLayout>
-                            <CollectionView.ItemTemplate>
-                                <DataTemplate x:DataType="models:Project">
-                                    <controls:ProjectCardView WidthRequest="200" />
-                                </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
-                        <Grid Grid.Row="4" MinimumHeightRequest="44">
-                            <Label Text="Tasks" Style="{StaticResource Title2}" VerticalOptions="Center" SemanticProperties.HeadingLevel="Level1"/>
-                            <ImageButton 
-                                Source="{StaticResource IconClean}"
-                                HorizontalOptions="End"
-                                VerticalOptions="Center"
-                                Aspect="Center"
-                                HeightRequest="44"
-                                WidthRequest="44"
-                                IsVisible="{Binding HasCompletedTasks}"
-                                Command="{Binding CleanTasksCommand}"
-                                SemanticProperties.Description="Clean tasks" />
-                        </Grid>
-                        <VerticalStackLayout Grid.Row="5" Spacing="15"
-                            BindableLayout.ItemsSource="{Binding Tasks}">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate>
-                                    <controls:TaskView TaskCompletedCommand="{Binding TaskCompletedCommand, Source={RelativeSource AncestorType={x:Type pageModels:MainPageModel}}, x:DataType=pageModels:MainPageModel}" />
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
+        <!-- Lista de Incidencias con Pull-to-Refresh -->
+        <RefreshView Grid.Row="1" 
+                     IsRefreshing="{Binding IsRefreshing}" 
+                     Command="{Binding LoadIssuesCommand}"
+                     RefreshColor="#1E293B">
+            
+            <ScrollView Padding="16">
+                <VerticalStackLayout Spacing="14">
+                    
+                    <!-- Mensaje cuando no hay reportes pendientes -->
+                    <Border IsVisible="{Binding HasNoIssues}"
+                            BackgroundColor="White" 
+                            StrokeShape="RoundRectangle 16" 
+                            Padding="24" 
+                            Margin="0, 40, 0, 0"
+                            Stroke="#E2E8F0">
+                        <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                            <Label Text="✨" FontSize="48" HorizontalOptions="Center" />
+                            <Label Text="¡Todo en orden!" FontSize="20" FontAttributes="Bold" TextColor="#1E293B" HorizontalOptions="Center" />
+                            <Label Text="No hay reportes ni incidencias pendientes en este momento." 
+                                   FontSize="14" 
+                                   TextColor="#64748B" 
+                                   HorizontalTextAlignment="Center" />
                         </VerticalStackLayout>
-                    </Grid>
-                </ScrollView>
-            </pullToRefresh:SfPullToRefresh.PullableContent>
-        </pullToRefresh:SfPullToRefresh>
+                    </Border>
 
-        <controls:AddButton 
-            IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
-            Command="{Binding AddTaskCommand}"
-            ToolTipProperties.Text="Add task"
-            SemanticProperties.Description="Add task" />
+                    <!-- Tarjetas de Incidencias -->
+                    <BindableLayout.ItemsSource>
+                        <Binding Path="ActiveIssues" />
+                    </BindableLayout.ItemsSource>
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="vm:IssueItemViewModel">
+                            <Border BackgroundColor="White" 
+                                    StrokeShape="RoundRectangle 14" 
+                                    Stroke="#CBD5E1" 
+                                    StrokeThickness="1" 
+                                    Padding="14" 
+                                    Margin="0, 4">
+                                <VerticalStackLayout Spacing="10">
+                                    <!-- Encabezado de la tarjeta: Ubicación y Badge de Estado -->
+                                    <Grid ColumnDefinitions="*, Auto">
+                                        <Label Text="{Binding LocationText}" 
+                                               FontSize="13" 
+                                               TextColor="#64748B" 
+                                               FontAttributes="Bold" 
+                                               LineBreakMode="TailTruncation"
+                                               VerticalOptions="Center" />
+
+                                        <Border Grid.Column="1" 
+                                                BackgroundColor="{Binding StatusBadgeColor}" 
+                                                Padding="8, 3" 
+                                                StrokeShape="RoundRectangle 8" 
+                                                StrokeThickness="0">
+                                            <Label Text="{Binding StatusBadgeText}" 
+                                                   TextColor="White" 
+                                                   FontSize="10" 
+                                                   FontAttributes="Bold" />
+                                        </Border>
+                                    </Grid>
+
+                                    <BoxView HeightRequest="1" Color="#F1F5F9" />
+
+                                    <!-- Cuerpo: Activo y Descripción del reporte -->
+                                    <Grid ColumnDefinitions="Auto, *" ColumnSpacing="10">
+                                        <Border Grid.Column="0" BackgroundColor="#EEF2F6" Padding="10" StrokeShape="RoundRectangle 10" StrokeThickness="0" VerticalOptions="Start">
+                                            <Label Text="{Binding AssetIconAndName}" FontSize="14" FontAttributes="Bold" TextColor="#1E293B" />
+                                        </Border>
+
+                                        <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                            <Label Text="{Binding IssueDescription}" 
+                                                   FontSize="15" 
+                                                   FontAttributes="Bold" 
+                                                   TextColor="#0F172A" />
+                                            <Label Text="{Binding ElapsedTimeText}" 
+                                                   FontSize="12" 
+                                                   TextColor="#94A3B8" />
+                                        </VerticalStackLayout>
+                                    </Grid>
+
+                                    <!-- Botones de Acción para el Aseador -->
+                                    <Grid ColumnDefinitions="*, *" ColumnSpacing="10" Margin="0, 4, 0, 0">
+                                        <!-- Iniciar Atención (solo si está en Generated) -->
+                                        <Button Grid.Column="0" 
+                                                Text="🏃 En camino" 
+                                                FontSize="13" 
+                                                FontAttributes="Bold"
+                                                BackgroundColor="#F8FAFC" 
+                                                TextColor="#475569" 
+                                                BorderColor="#CBD5E1" 
+                                                BorderWidth="1" 
+                                                CornerRadius="8"
+                                                IsVisible="{Binding CanAttend}"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CleaningDashboardViewModel}}, Path=AttendIssueCommand}"
+                                                CommandParameter="{Binding .}" />
+
+                                        <!-- Botón Resolver -->
+                                        <Button Grid.Column="1" 
+                                                Text="✓ Resuelto" 
+                                                FontSize="13" 
+                                                FontAttributes="Bold"
+                                                BackgroundColor="#16A34A" 
+                                                TextColor="White" 
+                                                CornerRadius="8"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CleaningDashboardViewModel}}, Path=ResolveIssueCommand}"
+                                                CommandParameter="{Binding .}" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
     </Grid>
+
 </ContentPage>

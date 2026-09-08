@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Maui;
+using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 using Syncfusion.Maui.Toolkit.Hosting;
 
@@ -43,18 +43,20 @@ public static class MauiProgram
         builder.Services.AddLogging(configure => configure.AddDebug());
 #endif
 
-        builder.Services.AddSingleton<ProjectRepository>();
-        builder.Services.AddSingleton<TaskRepository>();
-        builder.Services.AddSingleton<CategoryRepository>();
-        builder.Services.AddSingleton<TagRepository>();
-        builder.Services.AddSingleton<SeedDataService>();
-        builder.Services.AddSingleton<ModalErrorHandler>();
-        builder.Services.AddSingleton<MainPageModel>();
-        builder.Services.AddSingleton<ProjectListPageModel>();
-        builder.Services.AddSingleton<ManageMetaPageModel>();
+        // Configure HttpClient
+        string baseUrl = DeviceInfo.Platform == DevicePlatform.Android 
+            ? "http://10.0.2.2:5200" 
+            : "http://localhost:5200";
 
-        builder.Services.AddTransientWithShellRoute<ProjectDetailPage, ProjectDetailPageModel>("project");
-        builder.Services.AddTransientWithShellRoute<TaskDetailPage, TaskDetailPageModel>("task");
+        builder.Services.AddHttpClient("Api", client =>
+        {
+            client.BaseAddress = new Uri(baseUrl);
+        });
+
+        builder.Services.AddSingleton<IssueReportsService>();
+        builder.Services.AddSingleton<ViewModels.CleaningDashboardViewModel>();
+        builder.Services.AddSingleton<MainPage>();
+
 
         return builder.Build();
     }

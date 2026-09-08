@@ -64,9 +64,28 @@
         <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)"/>
     </ItemGroup>
 
+    <!-- Exclude Boilerplate Code from Compilation -->
+    <ItemGroup>
+        <Compile Remove="Models\**" />
+        <Compile Remove="Data\**" />
+        <Compile Remove="PageModels\**" />
+        <Compile Remove="Pages\ProjectDetailPage.xaml.cs" />
+        <Compile Remove="Pages\ProjectListPage.xaml.cs" />
+        <Compile Remove="Pages\ManageMetaPage.xaml.cs" />
+        <Compile Remove="Pages\TaskDetailPage.xaml.cs" />
+        <Compile Remove="Pages\Controls\**" />
+        
+        <MauiXaml Remove="Pages\ProjectDetailPage.xaml" />
+        <MauiXaml Remove="Pages\ProjectListPage.xaml" />
+        <MauiXaml Remove="Pages\ManageMetaPage.xaml" />
+        <MauiXaml Remove="Pages\TaskDetailPage.xaml" />
+        <MauiXaml Remove="Pages\Controls\**" />
+    </ItemGroup>
+
     <ItemGroup>
         <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)"/>
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -75,6 +94,11 @@
         <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="8.0.8"/>
         <PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.10"/>
         <PackageReference Include="Syncfusion.Maui.Toolkit" Version="1.0.8"/>
+        <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Coworking.Shared\Coworking.Shared.csproj" />
     </ItemGroup>
 
 </Project>

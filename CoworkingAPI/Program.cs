@@ -23,6 +23,9 @@ builder.Services.AddTransient<IAlertPublisher, SignalRAlertPublisher>();
 builder.Services.AddScoped<CoworkingAPI.Features.BuildingTopology.SyncTopology.SyncRestroomTopologyCommandHandler>();
 builder.Services.AddScoped<CoworkingAPI.Features.BuildingTopology.SyncTopology.GetRestroomTopologyQueryHandler>();
 builder.Services.AddScoped<CoworkingAPI.Features.IssueReports.CreateIssueReportCommandHandler>();
+builder.Services.AddScoped<CoworkingAPI.Features.IssueReports.GetActiveIssuesQueryHandler>();
+builder.Services.AddScoped<CoworkingAPI.Features.IssueReports.AttendIssueReportCommandHandler>();
+builder.Services.AddScoped<CoworkingAPI.Features.IssueReports.ResolveIssueReportCommandHandler>();
 
 // Hierarchy Handlers
 builder.Services.AddScoped<CreateBuildingCommandHandler>();
@@ -56,7 +59,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapHub<AlertTelemetryHub>("/alertsHub");
-app.UseHttpsRedirection();
+app.MapHub<AlertTelemetryHub>("/hubs/alert-telemetry");
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.MapControllers();
 
 app.Run();

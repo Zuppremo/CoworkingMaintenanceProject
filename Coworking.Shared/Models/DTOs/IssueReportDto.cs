@@ -12,6 +12,13 @@ public class IssueReportDto
     public DateTimeOffset? AttentionDate { get; set; }
     public DateTimeOffset? ResolutionDate { get; set; }
     
-    public Guid RestroomId { get; set; }
+    public Guid RestroomAssetId { get; set; }
     public AssetType AssetType { get; set; }
+    public short PositionX { get; set; }
+    public short PositionY { get; set; }
+
+    public Guid RestroomId { get; set; }
+    public string RestroomIdentifier { get; set; } = string.Empty;
+    public int FloorNumber { get; set; }
+    public string BuildingName { get; set; } = string.Empty;
 }
