@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CoworkingMobile;
 
@@ -11,6 +11,20 @@ public partial class App : Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        return new Window(new AppShell());
+        var shell = new AppShell();
+        var window = new Window(shell);
+        
+        CheckAuth(shell);
+        
+        return window;
+    }
+
+    private async void CheckAuth(Shell shell)
+    {
+        var token = await SecureStorage.Default.GetAsync("authToken");
+        if (string.IsNullOrEmpty(token))
+        {
+            await shell.GoToAsync("//login");
+        }
     }
 }

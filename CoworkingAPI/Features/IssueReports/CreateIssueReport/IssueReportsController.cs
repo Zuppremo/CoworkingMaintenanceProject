@@ -1,9 +1,11 @@
 using Coworking.Shared.Models.DTOs;
 using CoworkingAPI.Features.BuildingTopology;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CoworkingAPI.Features.IssueReports;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class IssueReportsController : ControllerBase
@@ -28,6 +30,7 @@ public class IssueReportsController : ControllerBase
         this.topologyCache = topologyCache;
     }
 
+    [AllowAnonymous]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateIssueReportRequest request)
     {

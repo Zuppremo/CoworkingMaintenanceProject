@@ -8,6 +8,7 @@ namespace CoworkingMobile.Services;
 public class IssueReportsService : IAsyncDisposable
 {
     private readonly HttpClient httpClient;
+    private readonly AuthService authService;
     private HubConnection? hubConnection;
     private readonly string baseUrl;
 
@@ -16,13 +17,14 @@ public class IssueReportsService : IAsyncDisposable
 
     public bool IsConnected => hubConnection?.State == HubConnectionState.Connected;
 
-    public IssueReportsService(IHttpClientFactory httpClientFactory)
+    public IssueReportsService(IHttpClientFactory httpClientFactory, AuthService authService)
     {
+        this.authService = authService;
         httpClient = httpClientFactory.CreateClient("Api");
         
         baseUrl = DeviceInfo.Platform == DevicePlatform.Android 
             ? "http://10.0.2.2:5200" 
-            : "http://localhost:5200";
+            : "https://localhost:7200";
     }
 
     public async Task InitializeSignalRAsync()
@@ -30,7 +32,10 @@ public class IssueReportsService : IAsyncDisposable
         if (hubConnection != null) return;
 
         hubConnection = new HubConnectionBuilder()
-            .WithUrl($"{baseUrl}/hubs/alert-telemetry")
+            .WithUrl($"{baseUrl}/hubs/alert-telemetry", options => 
+            {
+                options.AccessTokenProvider = () => authService.GetTokenAsync();
+            })
             .WithAutomaticReconnect()
             .Build();
 
@@ -67,6 +72,12 @@ public class IssueReportsService : IAsyncDisposable
     {
         try
         {
+            var token = await authService.GetTokenAsync();
+            if (!string.IsNullOrEmpty(token))
+            {
+                httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+            
             var result = await httpClient.GetFromJsonAsync<List<IssueReportDto>>("api/IssueReports/active");
             return result ?? new List<IssueReportDto>();
         }
@@ -81,6 +92,10 @@ public class IssueReportsService : IAsyncDisposable
     {
         try
         {
+            var token = await authService.GetTokenAsync();
+            if (!string.IsNullOrEmpty(token))
+                httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
             var response = await httpClient.PostAsync($"api/IssueReports/{reportId}/attend?operatorId={Uri.EscapeDataString(operatorName)}", null);
             return response.IsSuccessStatusCode;
         }
@@ -95,6 +110,10 @@ public class IssueReportsService : IAsyncDisposable
     {
         try
         {
+            var token = await authService.GetTokenAsync();
+            if (!string.IsNullOrEmpty(token))
+                httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
             var response = await httpClient.PostAsync($"api/IssueReports/{reportId}/resolve?operatorId={Uri.EscapeDataString(operatorName)}", null);
             return response.IsSuccessStatusCode;
         }

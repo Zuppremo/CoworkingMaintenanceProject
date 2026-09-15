@@ -4,6 +4,8 @@
 @using Coworking.Shared.Models.DTOs
 @using Coworking.Shared.Models.DTOs.Building
 @using Coworking.Shared.Models.DTOs.Telemetry
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [AllowAnonymous]
 @inject HttpClient Http
 @inject NavigationManager Nav
 
@@ -48,28 +50,14 @@
                     </div>
                 }
 
-                <!-- Selector de Baño (si no vino pre-configurado en el QR) -->
-                @if (RestroomIdParam == null && hierarchyList != null)
+                @if (RestroomIdParam == null)
                 {
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small text-secondary">1. Selecciona el Baño:</label>
-                        <select class="form-select" @onchange="OnRestroomDropdownChanged">
-                            <option value="">-- Elige un baño --</option>
-                            @foreach (var building in hierarchyList)
-                            {
-                                <optgroup label="🏢 @building.Name">
-                                    @foreach (var floor in building.Floors)
-                                    {
-                                        @foreach (var restroom in floor.Restrooms)
-                                        {
-                                            <option value="@restroom.Id">
-                                                Piso @floor.FloorNumber - @restroom.Identifier
-                                            </option>
-                                        }
-                                    }
-                                </optgroup>
-                            }
-                        </select>
+                    <div class="text-center py-4">
+                        <span class="display-1">📷</span>
+                        <h4 class="mt-3">Se requiere código QR</h4>
+                        <p class="text-muted">
+                            Por favor, escanea el código QR que se encuentra en la puerta o el espejo del baño para poder reportar una falla.
+                        </p>
                     </div>
                 }
                 else if (currentLayout != null)
@@ -87,7 +75,7 @@
                 @if (currentLayout != null && currentLayout.Assets.Any())
                 {
                     <div class="mb-3">
-                        <label class="form-label fw-bold small text-secondary">2. ¿Qué elemento tiene la falla?</label>
+                        <label class="form-label fw-bold small text-secondary">1. ¿Qué elemento tiene la falla?</label>
                         <div class="d-grid gap-2">
                             @foreach (var asset in currentLayout.Assets)
                             {
@@ -110,7 +98,7 @@
 
                     <!-- Botones de Fallas Comunes -->
                     <div class="mb-4">
-                        <label class="form-label fw-bold small text-secondary">3. ¿Cuál es el problema?</label>
+                        <label class="form-label fw-bold small text-secondary">2. ¿Cuál es el problema?</label>
                         <div class="d-flex flex-wrap gap-2 mb-2">
                             @foreach (var reason in commonReasons)
                             {
@@ -164,7 +152,6 @@
     private bool isSuccess = false;
     private string errorMessage = string.Empty;
 
-    private List<BuildingDto>? hierarchyList;
     private RestroomLayoutDto? currentLayout;
     private Guid? selectedAssetId;
     private string selectedReason = string.Empty;
@@ -195,10 +182,6 @@
             if (RestroomIdParam.HasValue)
             {
                 await LoadRestroomLayoutAsync(RestroomIdParam.Value);
-            }
-            else
-            {
-                hierarchyList = await Http.GetFromJsonAsync<List<BuildingDto>>("api/Hierarchy");
             }
         }
         catch (Exception ex)

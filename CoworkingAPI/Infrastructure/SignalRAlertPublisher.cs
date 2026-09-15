@@ -14,8 +14,8 @@ public class SignalRAlertPublisher : IAlertPublisher
         this.hubContext = hubContext;
     }
     
-    public async Task BroadcastStatusUpdateAsync(ReportStatusUpdateTelemetry payload)
+    public async Task BroadcastStatusUpdateAsync(ReportStatusUpdateTelemetry payload, Guid buildingId)
     {
-        await hubContext.Clients.All.SendAsync("OnReportStatusUpdated", payload);
+        await hubContext.Clients.Group($"Building_{buildingId}").SendAsync("OnReportStatusUpdated", payload);
     }
 }

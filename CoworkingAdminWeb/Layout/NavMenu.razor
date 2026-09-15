@@ -14,11 +14,13 @@
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="hierarchy">
-                <span class="bi bi-building-nav-menu" aria-hidden="true"></span> Jerarquía
-            </NavLink>
-        </div>
+        <AuthorizeView Roles="SuperAdmin,Admin">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="hierarchy">
+                    <span class="bi bi-diagram-3-fill-nav-menu" aria-hidden="true"></span> Jerarquía
+                </NavLink>
+            </div>
+        </AuthorizeView>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="topology">
                 <span class="bi bi-grid-3x3-gap-fill-nav-menu" aria-hidden="true"></span> Topología
@@ -29,11 +31,30 @@
                 <span class="bi bi-exclamation-triangle-fill-nav-menu" aria-hidden="true"></span> Reportar Falla (QR)
             </NavLink>
         </div>
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3 mt-auto">
+                    <button class="nav-link btn btn-link" style="color: white; border: none; text-align: left;" @onclick="Logout">
+                        <span class="bi bi-box-arrow-right-nav-menu" aria-hidden="true"></span> Cerrar Sesión
+                    </button>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item px-3 mt-auto">
+                    <NavLink class="nav-link" href="login">
+                        <span class="bi bi-box-arrow-in-right-nav-menu" aria-hidden="true"></span> Iniciar Sesión
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
     </nav>
 </div>
 
 @code {
     private bool collapseNavMenu = true;
+    
+    [Inject] private AuthService AuthService { get; set; } = default!;
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
@@ -41,5 +62,10 @@
     {
         collapseNavMenu = !collapseNavMenu;
     }
-
+    
+    private async Task Logout()
+    {
+        await AuthService.LogoutAsync();
+        NavigationManager.NavigateTo("login");
+    }
 }

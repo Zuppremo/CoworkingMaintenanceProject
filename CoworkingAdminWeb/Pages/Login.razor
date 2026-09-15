@@ -1,0 +1,65 @@
+@page "/login"
+@using CoworkingAdminWeb.Auth
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h4 class="card-title text-center mb-4">Iniciar Sesión</h4>
+                
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger p-2 text-center">@errorMessage</div>
+                }
+
+                <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+                    <div class="mb-3">
+                        <label>Correo Electrónico</label>
+                        <InputText @bind-Value="loginModel.Email" class="form-control" placeholder="ejemplo@coworking.com" />
+                    </div>
+                    <div class="mb-3">
+                        <label>Contraseña</label>
+                        <InputText @bind-Value="loginModel.Password" type="password" class="form-control" placeholder="****" />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        }
+                        else
+                        {
+                            <span>Entrar</span>
+                        }
+                    </button>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginRequest loginModel = new();
+    private string errorMessage = "";
+    private bool isLoading = false;
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = "";
+        
+        var success = await AuthService.LoginAsync(loginModel.Email, loginModel.Password);
+        
+        if (success)
+        {
+            NavigationManager.NavigateTo("");
+        }
+        else
+        {
+            errorMessage = "Credenciales incorrectas.";
+        }
+        
+        isLoading = false;
+    }
+}

@@ -1,9 +1,11 @@
 using Coworking.Shared.Models.DTOs.Building;
 using Coworking.Shared.Models.DTOs.Rest;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CoworkingAPI.Features.AdministrativeHierarchy;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class  HierarchyController : ControllerBase
@@ -35,6 +37,7 @@ public class  HierarchyController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "SuperAdmin")]
     [HttpPost("buildings")]
     public async Task<IActionResult> CreateBuilding([FromBody] CreateBuildingRequest request)
     {
@@ -42,6 +45,7 @@ public class  HierarchyController : ControllerBase
         return Ok(new { Id = id });
     }
 
+    [Authorize(Roles = "SuperAdmin")]
     [HttpDelete("buildings/{id}")]
     public async Task<IActionResult> DeleteBuilding(Guid id)
     {
@@ -50,6 +54,7 @@ public class  HierarchyController : ControllerBase
         return Ok();
     }
 
+    [Authorize(Roles = "SuperAdmin,Admin")]
     [HttpPost("floors")]
     public async Task<IActionResult> CreateFloor([FromBody] CreateFloorRequest request)
     {
@@ -58,6 +63,7 @@ public class  HierarchyController : ControllerBase
         return Ok(new { Id = id });
     }
 
+    [Authorize(Roles = "SuperAdmin,Admin")]
     [HttpPost("restrooms")]
     public async Task<IActionResult> CreateRestroom([FromBody] CreateRestroomRequest request)
     {

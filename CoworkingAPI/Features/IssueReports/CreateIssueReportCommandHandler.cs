@@ -39,13 +39,23 @@ public class CreateIssueReportCommandHandler
         context.IssueReports.Add(report);
         await context.SaveChangesAsync();
 
+        var buildingId = await context.RestroomAssets
+            .Where(a => a.Id == request.RestroomAssetId)
+            .Join(context.Restrooms, a => a.RestroomId, r => r.Id, (a, r) => r.FloorId)
+            .Join(context.Floors, fId => fId, f => f.Id, (fId, f) => f.BuildingId)
+            .FirstOrDefaultAsync();
+
         var telemetryPayload = new ReportStatusUpdateTelemetry()
         {
             ReportId = report.Id,
             Status = report.Status,
         };
         
-        await alertPublisher.BroadcastStatusUpdateAsync(telemetryPayload);
+        if (buildingId != Guid.Empty)
+        {
+            await alertPublisher.BroadcastStatusUpdateAsync(telemetryPayload, buildingId);
+        }
+        
         return (true, string.Empty);
     }
 }

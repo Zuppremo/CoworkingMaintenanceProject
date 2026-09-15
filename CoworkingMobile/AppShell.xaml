@@ -13,6 +13,12 @@
         ContentTemplate="{DataTemplate pages:MainPage}"
         Route="main" />
 
+    <ShellContent
+        Title="Login"
+        ContentTemplate="{DataTemplate pages:Auth.LoginPage}"
+        Route="login"
+        FlyoutItemIsVisible="False" />
+
     <Shell.FlyoutFooter>
         <Grid Padding="15">
             <sf:SfSegmentedControl x:Name="ThemeSegmentedControl" 

@@ -11,16 +11,19 @@
         <!-- Header con Estado de Conexión y Conteo -->
         <Border Grid.Row="0" BackgroundColor="#1E293B" Padding="16, 12" StrokeShape="RoundRectangle 0,0,16,16" StrokeThickness="0">
             <VerticalStackLayout Spacing="6">
-                <Grid ColumnDefinitions="*, Auto">
+                <Grid ColumnDefinitions="*, Auto, Auto" ColumnSpacing="10" VerticalOptions="Center">
                     <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
                         <Label Text="🧹" FontSize="22" VerticalOptions="Center" />
                         <Label Text="Panel de Limpieza" FontSize="20" FontAttributes="Bold" TextColor="White" VerticalOptions="Center" />
                     </HorizontalStackLayout>
                     
                     <!-- Contador de Incidencias -->
-                    <Border Grid.Column="1" BackgroundColor="#E02424" Padding="10, 4" StrokeShape="RoundRectangle 12" StrokeThickness="0">
+                    <Border Grid.Column="1" BackgroundColor="#E02424" Padding="10, 4" StrokeShape="RoundRectangle 12" StrokeThickness="0" VerticalOptions="Center">
                         <Label Text="{Binding ActiveCount, StringFormat='{0} pendientes'}" TextColor="White" FontAttributes="Bold" FontSize="12" />
                     </Border>
+
+                    <!-- Botón de Cerrar Sesión -->
+                    <Button Grid.Column="2" Text="🚪" FontSize="18" Padding="10,5" BackgroundColor="Transparent" TextColor="White" VerticalOptions="Center" Command="{Binding LogoutCommand}" />
                 </Grid>
 
                 <!-- Indicador de conexión SignalR -->

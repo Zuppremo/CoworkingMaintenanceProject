@@ -1,8 +1,10 @@
 using Coworking.Shared.Models.DTOs.Rest;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CoworkingAPI.Features.BuildingTopology.SyncTopology;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class TopologyController : ControllerBase
@@ -16,6 +18,7 @@ public class TopologyController : ControllerBase
         this.getHandler = getHandler;
     }
 
+    [AllowAnonymous]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetTopology(Guid id)
     {

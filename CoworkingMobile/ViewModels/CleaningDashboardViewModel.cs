@@ -32,12 +32,22 @@ public partial class CleaningDashboardViewModel : ObservableObject
 
     public ObservableCollection<IssueItemViewModel> ActiveIssues { get; } = new();
 
-    public CleaningDashboardViewModel(IssueReportsService issueService)
+    private readonly AuthService authService;
+
+    public CleaningDashboardViewModel(IssueReportsService issueService, AuthService authService)
     {
         this.issueService = issueService;
+        this.authService = authService;
 
         this.issueService.OnReportStatusUpdated += HandleReportStatusUpdated;
         this.issueService.OnConnectionStatusChanged += UpdateConnectionStatus;
+    }
+
+    [RelayCommand]
+    public async Task LogoutAsync()
+    {
+        authService.Logout();
+        await Shell.Current.GoToAsync("//login");
     }
 
     public async Task InitializeAsync()

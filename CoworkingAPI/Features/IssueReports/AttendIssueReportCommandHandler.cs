@@ -31,13 +31,23 @@ public class AttendIssueReportCommandHandler
 
         await context.SaveChangesAsync();
 
+        var buildingId = await context.IssueReports
+            .Where(r => r.Id == reportId)
+            .Join(context.RestroomAssets, r => r.RestroomAssetId, a => a.Id, (r, a) => a.RestroomId)
+            .Join(context.Restrooms, rId => rId, res => res.Id, (rId, res) => res.FloorId)
+            .Join(context.Floors, fId => fId, f => f.Id, (fId, f) => f.BuildingId)
+            .FirstOrDefaultAsync();
+
         var telemetryPayload = new ReportStatusUpdateTelemetry
         {
             ReportId = report.Id,
             Status = report.Status
         };
 
-        await alertPublisher.BroadcastStatusUpdateAsync(telemetryPayload);
+        if (buildingId != Guid.Empty)
+        {
+            await alertPublisher.BroadcastStatusUpdateAsync(telemetryPayload, buildingId);
+        }
         return true;
     }
 }

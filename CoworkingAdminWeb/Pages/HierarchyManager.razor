@@ -1,8 +1,11 @@
 @page "/hierarchy"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @using Coworking.Shared.Models.DTOs.Building
 @using Coworking.Shared.Models.DTOs.Rest
 @using System.Net.Http.Json
+@using QRCoder
 @inject HttpClient Http
+@inject NavigationManager Navigation
 
 <PageTitle>Gestión de Infraestructura</PageTitle>
 
@@ -113,8 +116,11 @@
                         <ul class="list-group list-group-flush">
                             @foreach (var restroom in selectedFloor.Restrooms)
                             {
-                                <li class="list-group-item">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
                                     @restroom.Identifier
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => ShowQr(restroom)">
+                                        🔲 QR
+                                    </button>
                                 </li>
                             }
                         </ul>
@@ -128,6 +134,29 @@
         </div>
     </div>
 </div>
+
+@if (selectedRestroomForQr != null && qrCodeImageBase64 != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Código QR - @selectedRestroomForQr.Identifier</h5>
+                    <button type="button" class="btn-close" @onclick="CloseQr"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p class="text-muted small">Imprime este código y colócalo en la puerta del baño.</p>
+                    <img src="data:image/png;base64,@qrCodeImageBase64" alt="Código QR" class="img-fluid" style="max-width: 300px; border: 1px solid #ddd; padding: 10px; border-radius: 10px;" />
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button class="btn btn-secondary" @onclick="CloseQr">Cerrar</button>
+                    <!-- Truco simple: abrir la imagen en otra pestaña para imprimir -->
+                    <a class="btn btn-primary" href="data:image/png;base64,@qrCodeImageBase64" target="_blank" download="QR_Bano_@selectedRestroomForQr.Id">Descargar Imagen</a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private List<BuildingDto> buildings = new();
@@ -143,6 +172,26 @@
 
     private bool showNewRestroom = false;
     private string newRestroomIdentifier = "";
+    
+    private RestroomHierarchyDto? selectedRestroomForQr;
+    private string? qrCodeImageBase64;
+
+    private void ShowQr(RestroomHierarchyDto restroom)
+    {
+        selectedRestroomForQr = restroom;
+        string url = Navigation.BaseUri + "report/" + restroom.Id;
+        using QRCodeGenerator qrGenerator = new QRCodeGenerator();
+        using QRCodeData qrCodeData = qrGenerator.CreateQrCode(url, QRCodeGenerator.ECCLevel.Q);
+        using PngByteQRCode qrCode = new PngByteQRCode(qrCodeData);
+        byte[] qrCodeImage = qrCode.GetGraphic(20);
+        qrCodeImageBase64 = Convert.ToBase64String(qrCodeImage);
+    }
+
+    private void CloseQr()
+    {
+        selectedRestroomForQr = null;
+        qrCodeImageBase64 = null;
+    }
 
     protected override async Task OnInitializedAsync()
     {

@@ -1,11 +1,12 @@
 using Coworking.Shared.Enums;
 using Coworking.Shared.Models;
 using Coworking.Shared.Models.Interfaces;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace CoworkingAPI.Data;
 
-public class AppDbContext : DbContext
+public class AppDbContext : IdentityDbContext<ApplicationUser>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
@@ -17,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<Restroom> Restrooms { get; set; }
     public DbSet<RestroomAsset> RestroomAssets { get; set; }
     public DbSet<IssueReport>  IssueReports { get; set; }
+    public DbSet<UserBuilding> UserBuildings { get; set; }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -33,6 +35,21 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<UserBuilding>()
+            .HasKey(ub => new { ub.UserId, ub.BuildingId });
+
+        modelBuilder.Entity<UserBuilding>()
+            .HasOne(ub => ub.User)
+            .WithMany(u => u.UserBuildings)
+            .HasForeignKey(ub => ub.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<UserBuilding>()
+            .HasOne(ub => ub.Building)
+            .WithMany()
+            .HasForeignKey(ub => ub.BuildingId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Building>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Floor>().HasQueryFilter(e => !e.IsDeleted);
@@ -64,7 +81,7 @@ public class AppDbContext : DbContext
         
         modelBuilder.Entity<Building>()
             .HasMany(b => b.Floors)
-            .WithOne() // No navigation property defined inside Floor pointing back to Building
+            .WithOne() 
             .HasForeignKey(f => f.BuildingId)
             .OnDelete(DeleteBehavior.Restrict);
 

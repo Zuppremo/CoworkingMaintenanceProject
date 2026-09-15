@@ -4,5 +4,5 @@ namespace Coworking.Shared.Models.Interfaces;
 
 public interface IAlertPublisher
 {
-    Task BroadcastStatusUpdateAsync(ReportStatusUpdateTelemetry payload);
+    Task BroadcastStatusUpdateAsync(ReportStatusUpdateTelemetry payload, Guid buildingId);
 }

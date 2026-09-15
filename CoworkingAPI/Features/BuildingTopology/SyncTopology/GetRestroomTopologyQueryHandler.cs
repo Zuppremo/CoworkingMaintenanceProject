@@ -17,11 +17,15 @@ public class GetRestroomTopologyQueryHandler
     public async Task<RestroomLayoutDto?> ExecuteAsync(Guid restroomId)
     {
         var restroom = await context.Restrooms
-            .Include(r => r.Assets)
             .AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == restroomId);
 
         if (restroom == null) return null;
+
+        var assets = await context.RestroomAssets
+            .AsNoTracking()
+            .Where(a => a.RestroomId == restroomId)
+            .ToListAsync();
 
         return new RestroomLayoutDto
         {
@@ -29,7 +33,7 @@ public class GetRestroomTopologyQueryHandler
             Identifier = restroom.Identifier,
             GridWidth = restroom.GridWidth,
             GridHeight = restroom.GridHeight,
-            Assets = restroom.Assets.Select(a => new RestroomAssetDto
+            Assets = assets.Select(a => new RestroomAssetDto
             {
                 Id = a.Id,
                 Type = a.Type,
