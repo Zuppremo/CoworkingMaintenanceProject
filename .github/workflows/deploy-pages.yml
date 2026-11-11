@@ -1,0 +1,54 @@
+name: Deploy CoworkingAdminWeb to GitHub Pages
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish Blazor WebAssembly
+        run: dotnet publish CoworkingAdminWeb/CoworkingAdminWeb.csproj -c Release -o output
+
+      - name: Change base href for GitHub Pages subpath
+        run: sed -i 's/<base href="\/" \/>/<base href="\/CoworkingMaintenanceProject\/" \/>/g' output/wwwroot/index.html
+
+      - name: Fix SPA 404 routing for Blazor
+        run: cp output/wwwroot/index.html output/wwwroot/404.html
+
+      - name: Disable Jekyll
+        run: touch output/wwwroot/.nojekyll
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: output/wwwroot
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
