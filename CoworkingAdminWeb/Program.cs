@@ -17,7 +17,17 @@ builder.Services.AddScoped<AuthenticationStateProvider, JwtAuthenticationStatePr
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddTransient<JwtAuthorizationMessageHandler>();
 
-builder.Services.AddHttpClient("API", client => client.BaseAddress = new Uri("https://localhost:7200/"))
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"];
+if (string.IsNullOrWhiteSpace(apiBaseUrl))
+{
+    apiBaseUrl = "https://coworkingapi-e8dbgdbgdsfea9bv.canadacentral-01.azurewebsites.net/";
+}
+if (!apiBaseUrl.EndsWith("/"))
+{
+    apiBaseUrl += "/";
+}
+
+builder.Services.AddHttpClient("API", client => client.BaseAddress = new Uri(apiBaseUrl))
     .AddHttpMessageHandler<JwtAuthorizationMessageHandler>();
 
 builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("API"));

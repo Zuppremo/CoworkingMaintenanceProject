@@ -22,9 +22,7 @@ public class IssueReportsService : IAsyncDisposable
         this.authService = authService;
         httpClient = httpClientFactory.CreateClient("Api");
         
-        baseUrl = DeviceInfo.Platform == DevicePlatform.Android 
-            ? "http://10.0.2.2:5200" 
-            : "https://localhost:7200";
+        baseUrl = Constants.ApiBaseUrl;
     }
 
     public async Task InitializeSignalRAsync()

@@ -44,13 +44,9 @@ public static class MauiProgram
 #endif
 
         // Configure HttpClient
-        string baseUrl = DeviceInfo.Platform == DevicePlatform.Android 
-            ? "http://10.0.2.2:5200" 
-            : "https://localhost:7200";
-
         builder.Services.AddHttpClient("Api", client =>
         {
-            client.BaseAddress = new Uri(baseUrl);
+            client.BaseAddress = new Uri(Constants.ApiBaseUrl);
         });
 
         builder.Services.AddSingleton<AuthService>();
