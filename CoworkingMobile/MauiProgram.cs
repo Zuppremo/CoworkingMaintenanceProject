@@ -46,7 +46,7 @@ public static class MauiProgram
         // Configure HttpClient
         builder.Services.AddHttpClient("Api", client =>
         {
-            client.BaseAddress = new Uri(Constants.ApiBaseUrl);
+            client.BaseAddress = new Uri(ApiConstants.ApiBaseUrl);
         });
 
         builder.Services.AddSingleton<AuthService>();

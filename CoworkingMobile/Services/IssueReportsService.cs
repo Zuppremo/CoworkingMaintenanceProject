@@ -22,47 +22,92 @@ public class IssueReportsService : IAsyncDisposable
         this.authService = authService;
         httpClient = httpClientFactory.CreateClient("Api");
         
-        baseUrl = Constants.ApiBaseUrl;
+        baseUrl = ApiConstants.ApiBaseUrl;
     }
 
     public async Task InitializeSignalRAsync()
     {
-        if (hubConnection != null) return;
-
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl($"{baseUrl}/hubs/alert-telemetry", options => 
-            {
-                options.AccessTokenProvider = () => authService.GetTokenAsync();
-            })
-            .WithAutomaticReconnect()
-            .Build();
-
-        hubConnection.On<ReportStatusUpdateTelemetry>("OnReportStatusUpdated", (telemetry) =>
+        var token = await authService.GetTokenAsync();
+        if (string.IsNullOrEmpty(token))
         {
-            OnReportStatusUpdated?.Invoke(telemetry);
-        });
-
-        hubConnection.Reconnected += (connectionId) =>
-        {
+            Console.WriteLine("SignalR: No se puede conectar porque no hay token de autenticación.");
             OnConnectionStatusChanged?.Invoke();
-            return Task.CompletedTask;
-        };
-
-        hubConnection.Closed += (error) =>
-        {
-            OnConnectionStatusChanged?.Invoke();
-            return Task.CompletedTask;
-        };
-
-        try
-        {
-            await hubConnection.StartAsync();
-            OnConnectionStatusChanged?.Invoke();
+            return;
         }
-        catch (Exception ex)
+
+        if (hubConnection == null)
         {
-            Console.WriteLine($"Error conectando a SignalR: {ex.Message}");
-            OnConnectionStatusChanged?.Invoke();
+            var hubUrl = $"{baseUrl.TrimEnd('/')}/hubs/alert-telemetry";
+
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(hubUrl, options => 
+                {
+                    options.AccessTokenProvider = () => authService.GetTokenAsync();
+                })
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On<ReportStatusUpdateTelemetry>("OnReportStatusUpdated", (telemetry) =>
+            {
+                OnReportStatusUpdated?.Invoke(telemetry);
+            });
+
+            hubConnection.Reconnected += (connectionId) =>
+            {
+                Console.WriteLine($"SignalR reconectado: {connectionId}");
+                OnConnectionStatusChanged?.Invoke();
+                return Task.CompletedTask;
+            };
+
+            hubConnection.Closed += (error) =>
+            {
+                Console.WriteLine($"SignalR cerrado: {error?.Message}");
+                OnConnectionStatusChanged?.Invoke();
+                return Task.CompletedTask;
+            };
+        }
+
+        if (hubConnection.State == HubConnectionState.Disconnected)
+        {
+            try
+            {
+                Console.WriteLine($"Iniciando conexión a SignalR en: {baseUrl.TrimEnd('/')}/hubs/alert-telemetry");
+                await hubConnection.StartAsync();
+                Console.WriteLine("SignalR conectado exitosamente!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error conectando a SignalR: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+                }
+            }
+            finally
+            {
+                OnConnectionStatusChanged?.Invoke();
+            }
+        }
+    }
+
+    public async Task DisconnectSignalRAsync()
+    {
+        if (hubConnection != null)
+        {
+            try
+            {
+                await hubConnection.StopAsync();
+                await hubConnection.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al desconectar SignalR: {ex.Message}");
+            }
+            finally
+            {
+                hubConnection = null;
+                OnConnectionStatusChanged?.Invoke();
+            }
         }
     }
 

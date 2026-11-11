@@ -46,6 +46,7 @@ public partial class CleaningDashboardViewModel : ObservableObject
     [RelayCommand]
     public async Task LogoutAsync()
     {
+        await issueService.DisconnectSignalRAsync();
         authService.Logout();
         await Shell.Current.GoToAsync("//login");
     }

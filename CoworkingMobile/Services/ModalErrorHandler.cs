@@ -1,5 +1,6 @@
 namespace CoworkingMobile.Services;
 
+
 /// <summary>
 /// Modal Error Handler.
 /// </summary>
