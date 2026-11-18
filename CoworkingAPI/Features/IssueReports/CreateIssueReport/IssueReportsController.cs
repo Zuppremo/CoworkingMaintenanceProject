@@ -1,3 +1,4 @@
+using Coworking.Shared.Enums;
 using Coworking.Shared.Models.DTOs;
 using CoworkingAPI.Features.BuildingTopology;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +13,7 @@ public class IssueReportsController : ControllerBase
 {
     private readonly CreateIssueReportCommandHandler createHandler;
     private readonly GetActiveIssuesQueryHandler getActiveHandler;
+    private readonly GetResolvedIssuesDashboardQueryHandler getResolvedDashboardHandler;
     private readonly AttendIssueReportCommandHandler attendHandler;
     private readonly ResolveIssueReportCommandHandler resolveHandler;
     private readonly ITopologyCache topologyCache;
@@ -19,12 +21,14 @@ public class IssueReportsController : ControllerBase
     public IssueReportsController(
         CreateIssueReportCommandHandler createHandler,
         GetActiveIssuesQueryHandler getActiveHandler,
+        GetResolvedIssuesDashboardQueryHandler getResolvedDashboardHandler,
         AttendIssueReportCommandHandler attendHandler,
         ResolveIssueReportCommandHandler resolveHandler,
         ITopologyCache topologyCache)
     {
         this.createHandler = createHandler;
         this.getActiveHandler = getActiveHandler;
+        this.getResolvedDashboardHandler = getResolvedDashboardHandler;
         this.attendHandler = attendHandler;
         this.resolveHandler = resolveHandler;
         this.topologyCache = topologyCache;
@@ -52,6 +56,18 @@ public class IssueReportsController : ControllerBase
     {
         var issues = await getActiveHandler.ExecuteAsync();
         return Ok(issues);
+    }
+
+    [Authorize(Roles = "SuperAdmin,Admin")]
+    [HttpGet("resolved-dashboard")]
+    public async Task<IActionResult> GetResolvedDashboard(
+        [FromQuery] Guid? buildingId = null,
+        [FromQuery] DateTimeOffset? fromDate = null,
+        [FromQuery] DateTimeOffset? toDate = null,
+        [FromQuery] AssetType? assetType = null)
+    {
+        var dashboard = await getResolvedDashboardHandler.ExecuteAsync(buildingId, fromDate, toDate, assetType);
+        return Ok(dashboard);
     }
 
     [HttpPost("{id}/attend")]

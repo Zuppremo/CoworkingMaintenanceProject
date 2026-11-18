@@ -1,4 +1,3 @@
-@page "/"
 @page "/topology"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @using Coworking.Shared.Models.DTOs.Rest
@@ -8,114 +7,119 @@
 @inject GridEditorState GridState
 @inject HttpClient Http
 
-<PageTitle>Editor de Topología de Baños</PageTitle>
+<PageTitle>Editor de Topología | Urban 165</PageTitle>
 
-<div class="container-fluid py-4">
-    <div class="row mb-4 align-items-end">
-        <div class="col-md-3">
-            <h2 class="mb-0">Editor de Topología</h2>
-            <p class="text-muted mb-0">Seleccione un baño para editar su plano.</p>
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="fm-pill fm-pill-slate">GRID SYSTEM 2D</span>
         </div>
-        <div class="col-md-9 d-flex gap-3 align-items-end justify-content-end">
-            <!-- Selector Jerárquico -->
-            <div>
-                <label class="form-label mb-0 fw-bold">Edificio</label>
-                <select class="form-select form-select-sm" @onchange="OnBuildingChanged">
-                    <option value="">Seleccione...</option>
-                    @foreach (var b in buildings)
-                    {
-                        <option value="@b.Id">@b.Name</option>
-                    }
-                </select>
-            </div>
-            
-            <div>
-                <label class="form-label mb-0 fw-bold">Piso</label>
-                <select class="form-select form-select-sm" @onchange="OnFloorChanged" disabled="@(selectedBuilding == null)">
-                    <option value="">Seleccione...</option>
-                    @if (selectedBuilding != null)
-                    {
-                        @foreach (var f in selectedBuilding.Floors)
-                        {
-                            <option value="@f.Id">Piso @f.FloorNumber</option>
-                        }
-                    }
-                </select>
-            </div>
-
-            <div>
-                <label class="form-label mb-0 fw-bold">Baño</label>
-                <select class="form-select form-select-sm" @onchange="OnRestroomChanged" disabled="@(selectedFloor == null)">
-                    <option value="">Seleccione...</option>
-                    @if (selectedFloor != null)
-                    {
-                        @foreach (var r in selectedFloor.Restrooms)
-                        {
-                            <option value="@r.Id">@r.Identifier</option>
-                        }
-                    }
-                </select>
-            </div>
-            
-            <!-- Configurador de Dimensiones (Solo si hay baño seleccionado) -->
-            @if (selectedRestroomId.HasValue)
-            {
-                <div class="d-flex gap-2 align-items-center bg-light p-2 rounded border">
-                    <label class="fw-bold mb-0 ms-2">Ancho:</label>
-                    <input type="number" class="form-control form-control-sm" style="width: 60px" @bind="InputWidth" min="5" max="50" />
-                    
-                    <label class="fw-bold mb-0 ms-2">Alto:</label>
-                    <input type="number" class="form-control form-control-sm" style="width: 60px" @bind="InputHeight" min="5" max="50" />
-                    
-                    <button class="btn btn-sm btn-primary ms-2" @onclick="ApplyDimensions">Aplicar</button>
-                </div>
-            }
-        </div>
+        <h1 class="h3 fw-bold mb-1" style="letter-spacing: -0.02em;">Editor de Topología de Baños</h1>
+        <p class="text-muted small mb-0">Modelado espacial bidimensional y ubicación de activos por coordenada.</p>
     </div>
 
-    @if (selectedRestroomId.HasValue)
-    {
-        <div class="row">
-            <!-- Palette Column -->
-            <div class="col-auto">
-                <AssetPalette />
-                
-                <div class="mt-4 d-grid gap-2">
-                    <button class="btn btn-outline-danger" @onclick="ClearGrid">Limpiar Lienzo</button>
-                    <button class="btn btn-success" @onclick="SaveTopology" disabled="@isSaving">
-                        @if (isSaving)
-                        {
-                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                            <span>Guardando...</span>
-                        }
-                        else
-                        {
-                            <span>Guardar Layout</span>
-                        }
-                    </button>
-                    
-                    @if (saveSuccess)
-                    {
-                        <div class="alert alert-success mt-2 py-2 px-3 mb-0" role="alert">
-                            ¡Layout guardado correctamente!
-                        </div>
-                    }
-                </div>
-            </div>
+    <div class="d-flex flex-wrap gap-2 align-items-end">
+        <div>
+            <label class="form-label mb-1 small fw-bold text-secondary">Edificio</label>
+            <select class="fm-select d-block" @onchange="OnBuildingChanged">
+                <option value="">Seleccione...</option>
+                @foreach (var b in buildings)
+                {
+                    <option value="@b.Id">@b.Name</option>
+                }
+            </select>
+        </div>
 
-            <!-- Canvas Column -->
-            <div class="col overflow-auto bg-light rounded border d-flex justify-content-center p-4" style="min-height: 600px;">
-                <GridCanvas CellSize="40" />
+        <div>
+            <label class="form-label mb-1 small fw-bold text-secondary">Piso</label>
+            <select class="fm-select d-block" @onchange="OnFloorChanged" disabled="@(selectedBuilding == null)">
+                <option value="">Seleccione...</option>
+                @if (selectedBuilding != null)
+                {
+                    @foreach (var f in selectedBuilding.Floors)
+                    {
+                        <option value="@f.Id">Piso @f.FloorNumber</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div>
+            <label class="form-label mb-1 small fw-bold text-secondary">Baño</label>
+            <select class="fm-select d-block" @onchange="OnRestroomChanged" disabled="@(selectedFloor == null)">
+                <option value="">Seleccione...</option>
+                @if (selectedFloor != null)
+                {
+                    @foreach (var r in selectedFloor.Restrooms)
+                    {
+                        <option value="@r.Id">@r.Identifier</option>
+                    }
+                }
+            </select>
+        </div>
+
+        @if (selectedRestroomId.HasValue)
+        {
+            <div class="d-flex gap-2 align-items-center fm-card px-3 py-2">
+                <label class="small fw-bold text-secondary mb-0">Ancho</label>
+                <input type="number" class="fm-input mono-num" style="width: 68px; padding: 0.3rem 0.5rem;" @bind="InputWidth" min="5" max="50" />
+
+                <label class="small fw-bold text-secondary mb-0 ms-1">Alto</label>
+                <input type="number" class="fm-input mono-num" style="width: 68px; padding: 0.3rem 0.5rem;" @bind="InputHeight" min="5" max="50" />
+
+                <button class="btn-fm-primary py-1 px-3" @onclick="ApplyDimensions">Aplicar</button>
+            </div>
+        }
+    </div>
+</div>
+
+@if (selectedRestroomId.HasValue)
+{
+    <div class="row g-4">
+        <div class="col-auto">
+            <AssetPalette />
+
+            <div class="mt-3 d-grid gap-2">
+                <button class="btn-fm-outline text-danger" @onclick="ClearGrid">Limpiar Lienzo</button>
+                <button class="btn-fm-accent" @onclick="SaveTopology" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span>Guardando...</span>
+                    }
+                    else
+                    {
+                        <span>Guardar Plano</span>
+                    }
+                </button>
+
+                @if (saveSuccess)
+                {
+                    <div class="fm-pill fm-pill-teal justify-content-center py-2 mt-1" role="alert">
+                        Plano guardado correctamente
+                    </div>
+                }
             </div>
         </div>
-    }
-    else
-    {
-        <div class="alert alert-info text-center mt-5">
-            Seleccione un edificio, un piso y un baño en la parte superior para comenzar a editar su plano topológico.
+
+        <div class="col fm-card overflow-auto d-flex justify-content-center align-items-start p-4" style="min-height: 600px; background: #F1F5F9;">
+            <GridCanvas CellSize="40" />
         </div>
-    }
-</div>
+    </div>
+}
+else
+{
+    <div class="fm-card p-5 text-center mt-4">
+        <div class="d-inline-flex align-items-center justify-content-center rounded-3 mb-3" style="width: 52px; height: 52px; background: #F1F5F9; color: #334155;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+            </svg>
+        </div>
+        <h2 class="h5 fw-bold text-dark mb-1">Selecciona una zona sanitaria</h2>
+        <p class="text-muted small mb-0">Elige edificio, piso y baño en la barra superior para abrir el plano interactivo.</p>
+    </div>
+}
 
 @code {
     private List<BuildingDto> buildings = new();

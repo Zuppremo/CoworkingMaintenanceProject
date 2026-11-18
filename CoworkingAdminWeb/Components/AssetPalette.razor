@@ -1,20 +1,19 @@
 @using Coworking.Shared.Enums
 @inject CoworkingAdminWeb.Services.GridEditorState GridState
 
-<div class="palette-container p-3 bg-light border rounded" style="width: 250px;">
-    <h5 class="mb-3">Activos (Arrastrar)</h5>
-    <div class="d-flex flex-column gap-3">
+<div class="fm-card p-3" style="width: 240px;">
+    <div class="text-uppercase fw-bold small text-secondary mb-3" style="letter-spacing: 0.05em;">Activos (Arrastrar)</div>
+    <div class="d-flex flex-column gap-2">
         @foreach (AssetType type in Enum.GetValues(typeof(AssetType)))
         {
-            <div class="asset-item d-flex align-items-center gap-2 p-2 border rounded bg-white" 
-                 draggable="true" 
+            <div class="d-flex align-items-center gap-2 p-2 rounded-3 border bg-white"
+                 draggable="true"
                  @ondragstart="() => OnDragStart(type)"
-                 style="cursor: grab;">
-                
-                <svg width="40" height="40" class="flex-shrink-0">
-                    <AssetIcon Type="@type" CellSize="40" />
+                 style="cursor: grab; border-color: #E2E8F0 !important;">
+                <svg width="36" height="36" class="flex-shrink-0">
+                    <AssetIcon Type="@type" CellSize="36" />
                 </svg>
-                <span class="fw-medium">@type.ToString()</span>
+                <span class="fw-semibold small text-dark">@GetAssetLabel(type)</span>
             </div>
         }
     </div>
@@ -25,4 +24,13 @@
     {
         GridState.StartDrag(type);
     }
+
+    private static string GetAssetLabel(AssetType type) => type switch
+    {
+        AssetType.Toilet => "Inodoro",
+        AssetType.Sink => "Lavamanos",
+        AssetType.PaperDispenser => "Dispensador Papel",
+        AssetType.HandDryer => "Secador Manos",
+        _ => type.ToString()
+    };
 }

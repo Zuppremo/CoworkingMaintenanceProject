@@ -35,6 +35,7 @@ builder.Services.AddScoped<CoworkingAPI.Features.BuildingTopology.SyncTopology.S
 builder.Services.AddScoped<CoworkingAPI.Features.BuildingTopology.SyncTopology.GetRestroomTopologyQueryHandler>();
 builder.Services.AddScoped<CoworkingAPI.Features.IssueReports.CreateIssueReportCommandHandler>();
 builder.Services.AddScoped<CoworkingAPI.Features.IssueReports.GetActiveIssuesQueryHandler>();
+builder.Services.AddScoped<CoworkingAPI.Features.IssueReports.GetResolvedIssuesDashboardQueryHandler>();
 builder.Services.AddScoped<CoworkingAPI.Features.IssueReports.AttendIssueReportCommandHandler>();
 builder.Services.AddScoped<CoworkingAPI.Features.IssueReports.ResolveIssueReportCommandHandler>();
 

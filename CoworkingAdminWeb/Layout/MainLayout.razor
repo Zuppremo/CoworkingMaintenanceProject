@@ -1,16 +1,32 @@
-﻿@inherits LayoutComponentBase
-<div class="page">
-    <div class="sidebar">
-        <NavMenu/>
-    </div>
+@inherits LayoutComponentBase
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+<div class="fm-shell">
+    <aside class="fm-sidebar">
+        <NavMenu />
+    </aside>
 
-        <article class="content px-4">
+    <div class="fm-main">
+        <header class="fm-topbar">
+            <div class="fm-topbar-left">
+                <span class="fm-env-badge">URBAN 165 • BOGOTÁ D.C.</span>
+            </div>
+            <div class="fm-topbar-right">
+                <AuthorizeView>
+                    <Authorized>
+                        <div class="fm-user-chip">
+                            <span class="fm-user-dot"></span>
+                            <span class="fm-user-name">@context.User.Identity?.Name</span>
+                        </div>
+                    </Authorized>
+                    <NotAuthorized>
+                        <a href="login" class="btn-fm-outline btn-sm text-decoration-none">Acceso Administrativo</a>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </header>
+
+        <main class="fm-content">
             @Body
-        </article>
-    </main>
+        </main>
+    </div>
 </div>

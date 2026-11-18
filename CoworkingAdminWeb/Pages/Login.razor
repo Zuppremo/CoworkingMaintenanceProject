@@ -3,34 +3,67 @@
 @inject AuthService AuthService
 @inject NavigationManager NavigationManager
 
-<div class="row justify-content-center mt-5">
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h4 class="card-title text-center mb-4">Iniciar Sesión</h4>
-                
+<PageTitle>Iniciar Sesión | Urban 165</PageTitle>
+
+<div class="d-flex align-items-center justify-content-center py-5" style="min-height: calc(100vh - 120px);">
+    <div class="fm-card overflow-hidden w-100" style="max-width: 880px;">
+        <div class="row g-0">
+            <!-- Left Brand Panel -->
+            <div class="col-md-5 p-4 p-lg-5 d-flex flex-column justify-content-between text-white" style="background: linear-gradient(155deg, #0F172A 0%, #1E293B 100%);">
+                <div>
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-3 mb-4" style="width: 46px; height: 46px; background: rgba(20, 184, 166, 0.16); border: 1px solid rgba(20, 184, 166, 0.35);">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#14B8A6" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                            <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                            <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                            <path d="M14 17.5h7M17.5 14v7" />
+                        </svg>
+                    </div>
+                    <div class="text-uppercase fw-bold mb-2" style="font-size: 0.72rem; letter-spacing: 0.14em; color: #2DD4BF;">URBAN 165 • BOGOTÁ D.C.</div>
+                    <h2 class="h4 fw-bold mb-3">Plataforma de Facility Management</h2>
+                    <p class="small mb-0" style="color: #94A3B8; line-height: 1.6;">
+                        Gestión espacial bidimensional, telemetría en tiempo real con SignalR y analítica MTTR para optimización de mantenimiento.
+                    </p>
+                </div>
+
+                <div class="pt-4 mt-4 border-top" style="border-color: rgba(255,255,255,0.1) !important;">
+                    <div class="d-flex align-items-center gap-2 small" style="color: #CBD5E1;">
+                        <span style="width: 8px; height: 8px; border-radius: 50%; background: #14B8A6;"></span>
+                        <span>Ecosistema .NET 10 • Blazor &amp; MAUI</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Form Panel -->
+            <div class="col-md-7 p-4 p-lg-5 bg-white">
+                <div class="mb-4">
+                    <h1 class="h4 fw-bold mb-1">Acceso Administrativo</h1>
+                    <p class="text-muted small mb-0">Ingresa tus credenciales para gestionar edificios, planos e indicadores.</p>
+                </div>
+
                 @if (!string.IsNullOrEmpty(errorMessage))
                 {
-                    <div class="alert alert-danger p-2 text-center">@errorMessage</div>
+                    <div class="alert alert-danger border-0 py-2 px-3 small mb-3">@errorMessage</div>
                 }
 
                 <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
                     <div class="mb-3">
-                        <label>Correo Electrónico</label>
-                        <InputText @bind-Value="loginModel.Email" class="form-control" placeholder="ejemplo@coworking.com" />
+                        <label class="form-label small fw-bold text-secondary">Correo Electrónico</label>
+                        <InputText @bind-Value="loginModel.Email" class="fm-input w-100" placeholder="admin@coworking.com" />
                     </div>
-                    <div class="mb-3">
-                        <label>Contraseña</label>
-                        <InputText @bind-Value="loginModel.Password" type="password" class="form-control" placeholder="****" />
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-secondary">Contraseña</label>
+                        <InputText @bind-Value="loginModel.Password" type="password" class="fm-input w-100" placeholder="••••••••" />
                     </div>
-                    <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+                    <button type="submit" class="btn-fm-primary w-100 py-2" disabled="@isLoading">
                         @if (isLoading)
                         {
                             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span>Verificando...</span>
                         }
                         else
                         {
-                            <span>Entrar</span>
+                            <span>Ingresar al Panel</span>
                         }
                     </button>
                 </EditForm>
@@ -48,18 +81,31 @@
     {
         isLoading = true;
         errorMessage = "";
-        
-        var success = await AuthService.LoginAsync(loginModel.Email, loginModel.Password);
-        
-        if (success)
+
+        try
         {
-            NavigationManager.NavigateTo("");
+            var success = await AuthService.LoginAsync(loginModel.Email, loginModel.Password);
+
+            if (success)
+            {
+                NavigationManager.NavigateTo("");
+            }
+            else
+            {
+                errorMessage = "Credenciales incorrectas. Verifica tu correo y contraseña.";
+            }
         }
-        else
+        catch (HttpRequestException)
         {
-            errorMessage = "Credenciales incorrectas.";
+            errorMessage = "No se pudo conectar con el servidor API. Verifica tu conexión o que el servicio esté disponible.";
         }
-        
-        isLoading = false;
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al iniciar sesión: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 }

@@ -1,0 +1,575 @@
+@page "/"
+@page "/dashboard"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SuperAdmin,Admin")]
+@using System.Globalization
+@using System.Text
+@using Coworking.Shared.Enums
+@using Coworking.Shared.Models.DTOs.Analytics
+@using Coworking.Shared.Models.DTOs.Building
+@inject HttpClient Http
+
+<PageTitle>Dashboard de Decisiones | Urban 165</PageTitle>
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="fm-pill fm-pill-teal">ANALÍTICA OPERATIVA</span>
+            <span class="text-muted small">Mantenimiento Preventivo y Correctivo</span>
+        </div>
+        <h1 class="h3 fw-bold mb-1" style="letter-spacing: -0.02em;">Centro de Decisiones — Incidencias Resueltas</h1>
+        <p class="text-muted small mb-0">Evaluación de MTTR, MTTA, puntos críticos por piso y rendimiento de activos para optimización de rondas.</p>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <select class="fm-select" @bind="selectedBuildingId" @bind:after="LoadDashboardAsync">
+            <option value="">Todos los edificios</option>
+            @foreach (var b in buildings)
+            {
+                <option value="@b.Id">@b.Name</option>
+            }
+        </select>
+
+        <select class="fm-select" @bind="selectedPeriod" @bind:after="LoadDashboardAsync">
+            <option value="7">Últimos 7 días</option>
+            <option value="30">Últimos 30 días</option>
+            <option value="90">Últimos 90 días</option>
+            <option value="all">Todo el historial</option>
+        </select>
+
+        <select class="fm-select" @bind="selectedAssetFilter" @bind:after="LoadDashboardAsync">
+            <option value="">Todos los activos</option>
+            @foreach (AssetType type in Enum.GetValues(typeof(AssetType)))
+            {
+                <option value="@type">@GetAssetLabel(type)</option>
+            }
+        </select>
+
+        <button class="btn-fm-outline" @onclick="LoadDashboardAsync" disabled="@isLoading">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+            <span>Actualizar</span>
+        </button>
+
+        @if (dashboard != null && dashboard.ResolvedIssues.Any())
+        {
+            <a class="btn-fm-primary text-decoration-none" href="@BuildCsvDataUri()" download="incidencias_resueltas_urban165.csv">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span>Exportar CSV</span>
+            </a>
+        }
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger border-0 shadow-sm mb-4">@errorMessage</div>
+}
+
+@if (isLoading)
+{
+    <div class="fm-card p-5 text-center">
+        <div class="spinner-border text-secondary mb-3" role="status"></div>
+        <div class="fw-semibold text-secondary">Calculando indicadores MTTR, MTTA y tendencias...</div>
+    </div>
+}
+else if (dashboard != null)
+{
+    <!-- KPI Strip -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl">
+            <div class="fm-kpi-card h-100" style="--kpi-accent: var(--fm-teal);">
+                <div class="fm-kpi-label">
+                    <span>Incidencias Resueltas</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2"><polyline points="20 6 9 17 4 12" /></svg>
+                </div>
+                <div class="fm-kpi-value">@dashboard.TotalResolved</div>
+                <div class="fm-kpi-meta">Tasa de resolución: <strong class="text-dark">@dashboard.ResolutionRatePercent.ToString("0.0")%</strong></div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl">
+            <div class="fm-kpi-card h-100" style="--kpi-accent: var(--fm-indigo);">
+                <div class="fm-kpi-label">
+                    <span>MTTR Promedio</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                </div>
+                <div class="fm-kpi-value">@FormatDuration(dashboard.AvgMttrMinutes)</div>
+                <div class="fm-kpi-meta">Rango: @FormatDuration(dashboard.FastestResolutionMinutes) – @FormatDuration(dashboard.SlowestResolutionMinutes)</div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl">
+            <div class="fm-kpi-card h-100" style="--kpi-accent: var(--fm-amber);">
+                <div class="fm-kpi-label">
+                    <span>MTTA (Respuesta)</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
+                </div>
+                <div class="fm-kpi-value">@FormatDuration(dashboard.AvgMttaMinutes)</div>
+                <div class="fm-kpi-meta">Reparación activa: <strong class="text-dark">@FormatDuration(dashboard.AvgActiveRepairMinutes)</strong></div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl">
+            <div class="fm-kpi-card h-100" style="--kpi-accent: var(--fm-crimson);">
+                <div class="fm-kpi-label">
+                    <span>Backlog Activo</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+                </div>
+                <div class="fm-kpi-value">@dashboard.TotalActive</div>
+                <div class="fm-kpi-meta">Reportes pendientes de cierre</div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl">
+            <div class="fm-kpi-card h-100" style="--kpi-accent: var(--fm-obsidian);">
+                <div class="fm-kpi-label">
+                    <span>Activo Más Crítico</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>
+                </div>
+                @{
+                    var topAsset = dashboard.ByAssetType.FirstOrDefault();
+                }
+                <div class="fm-kpi-value" style="font-size: 1.35rem;">@(topAsset != null ? GetAssetLabel(topAsset.AssetType) : "Sin datos")</div>
+                <div class="fm-kpi-meta">@(topAsset != null ? $"{topAsset.ResolvedCount} fallas ({topAsset.Percentage:0.0}%)" : "Sin incidencias registradas")</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts & Breakdown Row -->
+    <div class="row g-4 mb-4">
+        <!-- Daily Resolution Trend SVG Chart -->
+        <div class="col-lg-7">
+            <div class="fm-card h-100">
+                <div class="fm-card-header">
+                    <div>
+                        <h2 class="fm-card-title">Tendencia Diaria de Resolución</h2>
+                        <p class="fm-card-subtitle">Volumen de incidencias cerradas por fecha para detectar picos de demanda</p>
+                    </div>
+                    <span class="fm-pill fm-pill-slate mono-num">@dashboard.DailyTrend.Count días con actividad</span>
+                </div>
+                <div class="p-4">
+                    @if (!dashboard.DailyTrend.Any())
+                    {
+                        <div class="text-center text-muted py-5 small">No hay datos suficientes en el rango seleccionado para graficar la tendencia.</div>
+                    }
+                    else
+                    {
+                        var trendSlice = dashboard.DailyTrend.TakeLast(14).ToList();
+                        var maxCount = Math.Max(1, trendSlice.Max(d => d.ResolvedCount));
+                        const int svgWidth = 640;
+                        const int svgHeight = 220;
+                        const int padLeft = 36;
+                        const int padBottom = 34;
+                        const int padTop = 16;
+                        var chartW = svgWidth - padLeft - 16;
+                        var chartH = svgHeight - padTop - padBottom;
+                        var slotW = (double)chartW / trendSlice.Count;
+                        var barW = Math.Min(34, slotW * 0.58);
+
+                        <svg viewBox="0 0 @svgWidth @svgHeight" class="w-100" style="height: 230px; overflow: visible;">
+                            @for (int g = 0; g <= 4; g++)
+                            {
+                                var y = padTop + chartH - (chartH * g / 4.0);
+                                var labelVal = Math.Round(maxCount * g / 4.0);
+                                <line x1="@padLeft" y1="@y.ToString(CultureInfo.InvariantCulture)" x2="@(svgWidth - 10)" y2="@y.ToString(CultureInfo.InvariantCulture)" stroke="#E2E8F0" stroke-dasharray="3 3" />
+                                @((MarkupString)$"<text x=\"{padLeft - 8}\" y=\"{(y + 4).ToString(CultureInfo.InvariantCulture)}\" text-anchor=\"end\" font-size=\"10\" fill=\"#64748B\" font-family=\"JetBrains Mono, monospace\">{labelVal}</text>")
+                            }
+
+                            @for (int i = 0; i < trendSlice.Count; i++)
+                            {
+                                var item = trendSlice[i];
+                                var barH = (double)item.ResolvedCount / maxCount * chartH;
+                                var x = padLeft + i * slotW + (slotW - barW) / 2.0;
+                                var y = padTop + chartH - barH;
+                                var cx = x + barW / 2.0;
+
+                                <rect x="@x.ToString(CultureInfo.InvariantCulture)"
+                                      y="@y.ToString(CultureInfo.InvariantCulture)"
+                                      width="@barW.ToString(CultureInfo.InvariantCulture)"
+                                      height="@Math.Max(2, barH).ToString(CultureInfo.InvariantCulture)"
+                                      rx="4"
+                                      fill="#0D9488">
+                                    <title>@item.Date.ToString("dd MMM yyyy"): @item.ResolvedCount resueltas (MTTR @FormatDuration(item.AvgMttrMinutes))</title>
+                                </rect>
+                                @((MarkupString)$"<text x=\"{cx.ToString(CultureInfo.InvariantCulture)}\" y=\"{(y - 5).ToString(CultureInfo.InvariantCulture)}\" text-anchor=\"middle\" font-size=\"10\" font-weight=\"700\" fill=\"#0F172A\" font-family=\"JetBrains Mono, monospace\">{item.ResolvedCount}</text>")
+                                @((MarkupString)$"<text x=\"{cx.ToString(CultureInfo.InvariantCulture)}\" y=\"{(svgHeight - 10).ToString(CultureInfo.InvariantCulture)}\" text-anchor=\"middle\" font-size=\"10\" fill=\"#64748B\">{item.Date:dd/MM}</text>")
+                            }
+                        </svg>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Asset Type Breakdown -->
+        <div class="col-lg-5">
+            <div class="fm-card h-100">
+                <div class="fm-card-header">
+                    <div>
+                        <h2 class="fm-card-title">Incidencias por Tipo de Activo</h2>
+                        <p class="fm-card-subtitle">Priorización de mantenimiento preventivo por equipo</p>
+                    </div>
+                </div>
+                <div class="p-4 d-flex flex-column gap-3">
+                    @if (!dashboard.ByAssetType.Any())
+                    {
+                        <div class="text-center text-muted py-5 small">Sin incidencias resueltas para clasificar.</div>
+                    }
+                    else
+                    {
+                        @foreach (var asset in dashboard.ByAssetType)
+                        {
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="d-inline-flex align-items-center justify-content-center rounded-2" style="width: 28px; height: 28px; background: #F1F5F9; color: #0F172A;">
+                                            @GetAssetSvg(asset.AssetType)
+                                        </span>
+                                        <span class="fw-semibold small">@GetAssetLabel(asset.AssetType)</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 small">
+                                        <span class="mono-num fw-bold">@asset.ResolvedCount</span>
+                                        <span class="text-muted">(@asset.Percentage.ToString("0.0")%)</span>
+                                        <span class="fm-pill fm-pill-slate mono-num">MTTR @FormatDuration(asset.AvgMttrMinutes)</span>
+                                    </div>
+                                </div>
+                                <div class="progress" style="height: 8px; background-color: #F1F5F9; border-radius: 99px;">
+                                    <div class="progress-bar" role="progressbar"
+                                         style="width: @asset.Percentage.ToString("0.0", CultureInfo.InvariantCulture)%; background-color: @GetAssetColor(asset.AssetType); border-radius: 99px;"></div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Decision Insights Row: Location Hotspots + Top Recurring Issues + Operator Performance -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-5">
+            <div class="fm-card h-100">
+                <div class="fm-card-header">
+                    <div>
+                        <h2 class="fm-card-title">Puntos Críticos por Ubicación</h2>
+                        <p class="fm-card-subtitle">Baños con mayor recurrencia y tiempo de reparación</p>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="fm-table">
+                        <thead>
+                            <tr>
+                                <th>Ubicación</th>
+                                <th class="text-end">Resueltas</th>
+                                <th class="text-end">MTTR Prom.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!dashboard.ByLocation.Any())
+                            {
+                                <tr><td colspan="3" class="text-center text-muted py-4">Sin datos de ubicación</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var loc in dashboard.ByLocation.Take(6))
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold text-dark">@loc.RestroomIdentifier</div>
+                                            <div class="text-muted" style="font-size: 0.75rem;">@loc.BuildingName • Piso @loc.FloorNumber</div>
+                                        </td>
+                                        <td class="text-end mono-num fw-bold">@loc.ResolvedCount</td>
+                                        <td class="text-end">
+                                            <span class="fm-pill @GetMttrBadgeClass(loc.AvgMttrMinutes) mono-num">@FormatDuration(loc.AvgMttrMinutes)</span>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="fm-card h-100">
+                <div class="fm-card-header">
+                    <div>
+                        <h2 class="fm-card-title">Fallas Más Frecuentes</h2>
+                        <p class="fm-card-subtitle">Causas principales reportadas por usuarios</p>
+                    </div>
+                </div>
+                <div class="p-3 d-flex flex-column gap-2">
+                    @if (!dashboard.TopIssueDescriptions.Any())
+                    {
+                        <div class="text-center text-muted py-4 small">Sin descripciones registradas</div>
+                    }
+                    else
+                    {
+                        @foreach (var cat in dashboard.TopIssueDescriptions.Take(6))
+                        {
+                            <div class="d-flex justify-content-between align-items-center p-2 rounded-3" style="background: #F8FAFC; border: 1px solid #F1F5F9;">
+                                <div class="text-truncate pe-2" style="max-width: 220px;" title="@cat.Description">
+                                    <div class="fw-semibold small text-dark text-truncate">@cat.Description</div>
+                                    <div class="text-muted" style="font-size: 0.72rem;">MTTR: @FormatDuration(cat.AvgMttrMinutes)</div>
+                                </div>
+                                <span class="fm-pill fm-pill-slate mono-num">@cat.Count</span>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="fm-card h-100">
+                <div class="fm-card-header">
+                    <div>
+                        <h2 class="fm-card-title">Operarios</h2>
+                        <p class="fm-card-subtitle">Cierres por responsable</p>
+                    </div>
+                </div>
+                <div class="p-3 d-flex flex-column gap-2">
+                    @if (!dashboard.ByOperator.Any())
+                    {
+                        <div class="text-center text-muted py-4 small">Sin operarios asignados</div>
+                    }
+                    else
+                    {
+                        @foreach (var op in dashboard.ByOperator.Take(6))
+                        {
+                            <div class="d-flex justify-content-between align-items-center p-2 rounded-3 border">
+                                <div class="text-truncate pe-2">
+                                    <div class="fw-semibold small text-dark text-truncate">@op.OperatorId</div>
+                                    <div class="text-muted mono-num" style="font-size: 0.72rem;">MTTR @FormatDuration(op.AvgMttrMinutes)</div>
+                                </div>
+                                <span class="fm-pill fm-pill-teal mono-num">@op.ResolvedCount</span>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Solved Issues Log -->
+    <div class="fm-card">
+        <div class="fm-card-header flex-wrap">
+            <div>
+                <h2 class="fm-card-title">Historial Detallado de Incidencias Resueltas</h2>
+                <p class="fm-card-subtitle">Trazabilidad completa desde el reporte QR hasta el cierre en campo</p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <input type="text"
+                       class="fm-input"
+                       style="min-width: 260px;"
+                       placeholder="Buscar por falla, baño, piso u operario..."
+                       @bind="searchTerm"
+                       @bind:event="oninput" />
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="fm-table">
+                <thead>
+                    <tr>
+                        <th>Activo</th>
+                        <th>Ubicación</th>
+                        <th>Descripción de Falla</th>
+                        <th>Reportado</th>
+                        <th>Resuelto</th>
+                        <th>Operario</th>
+                        <th class="text-end">MTTR</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var filteredList = FilteredIssues.ToList();
+                    }
+                    @if (!filteredList.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-5">
+                                No se encontraron incidencias resueltas con los filtros actuales.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in filteredList.Take(50))
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="d-inline-flex align-items-center justify-content-center rounded-2" style="width: 30px; height: 30px; background: #F1F5F9;">
+                                            @GetAssetSvg(item.AssetType)
+                                        </span>
+                                        <div>
+                                            <div class="fw-semibold text-dark">@GetAssetLabel(item.AssetType)</div>
+                                            <div class="mono-num text-muted" style="font-size: 0.72rem;">Pos (@item.PositionX, @item.PositionY)</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark">@item.RestroomIdentifier</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">@item.BuildingName • Piso @item.FloorNumber</div>
+                                </td>
+                                <td>
+                                    <span class="fw-medium text-dark">@item.IssueDescription</span>
+                                </td>
+                                <td class="mono-num small">@item.GenerationDate.ToLocalTime().ToString("dd/MM HH:mm")</td>
+                                <td class="mono-num small">@item.ResolutionDate.ToLocalTime().ToString("dd/MM HH:mm")</td>
+                                <td>
+                                    <span class="fm-pill fm-pill-slate">@item.AssignedOperatorId</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="fm-pill @GetMttrBadgeClass(item.MttrMinutes) mono-num">@FormatDuration(item.MttrMinutes)</span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private ResolvedIssuesDashboardDto? dashboard;
+    private List<BuildingDto> buildings = new();
+    private string selectedBuildingId = string.Empty;
+    private string selectedPeriod = "30";
+    private string selectedAssetFilter = string.Empty;
+    private string searchTerm = string.Empty;
+    private bool isLoading = true;
+    private string errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            buildings = await Http.GetFromJsonAsync<List<BuildingDto>>("api/Hierarchy") ?? new();
+        }
+        catch
+        {
+            buildings = new();
+        }
+
+        await LoadDashboardAsync();
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var queryParts = new List<string>();
+            if (Guid.TryParse(selectedBuildingId, out var bId))
+            {
+                queryParts.Add($"buildingId={bId}");
+            }
+
+            if (int.TryParse(selectedPeriod, out var days))
+            {
+                var from = DateTimeOffset.UtcNow.AddDays(-days);
+                queryParts.Add($"fromDate={Uri.EscapeDataString(from.ToString("O"))}");
+            }
+
+            if (Enum.TryParse<AssetType>(selectedAssetFilter, out var assetType))
+            {
+                queryParts.Add($"assetType={(int)assetType}");
+            }
+
+            var url = "api/IssueReports/resolved-dashboard" + (queryParts.Any() ? "?" + string.Join("&", queryParts) : "");
+            dashboard = await Http.GetFromJsonAsync<ResolvedIssuesDashboardDto>(url);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"No se pudieron cargar las métricas del dashboard: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private IEnumerable<ResolvedIssueItemDto> FilteredIssues
+    {
+        get
+        {
+            if (dashboard == null) return Enumerable.Empty<ResolvedIssueItemDto>();
+            if (string.IsNullOrWhiteSpace(searchTerm)) return dashboard.ResolvedIssues;
+
+            var term = searchTerm.Trim();
+            return dashboard.ResolvedIssues.Where(i =>
+                i.IssueDescription.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                i.BuildingName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                i.RestroomIdentifier.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                i.AssignedOperatorId.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                GetAssetLabel(i.AssetType).Contains(term, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private string BuildCsvDataUri()
+    {
+        if (dashboard == null) return string.Empty;
+        var sb = new StringBuilder();
+        sb.AppendLine("Id,Edificio,Piso,Bano,Activo,PosX,PosY,Descripcion,Operario,FechaReporte,FechaResolucion,MTTR_Minutos");
+        foreach (var item in FilteredIssues)
+        {
+            var desc = item.IssueDescription.Replace("\"", "\"\"");
+            sb.AppendLine($"{item.Id},\"{item.BuildingName}\",{item.FloorNumber},\"{item.RestroomIdentifier}\",{GetAssetLabel(item.AssetType)},{item.PositionX},{item.PositionY},\"{desc}\",\"{item.AssignedOperatorId}\",{item.GenerationDate:O},{item.ResolutionDate:O},{item.MttrMinutes.ToString(CultureInfo.InvariantCulture)}");
+        }
+        return "data:text/csv;charset=utf-8," + Uri.EscapeDataString(sb.ToString());
+    }
+
+    private static string FormatDuration(double minutes)
+    {
+        if (minutes < 1) return "< 1 min";
+        if (minutes < 60) return $"{Math.Round(minutes)} min";
+        var hours = (int)(minutes / 60);
+        var rem = (int)Math.Round(minutes % 60);
+        return $"{hours}h {rem}m";
+    }
+
+    private static string GetMttrBadgeClass(double minutes)
+    {
+        if (minutes <= 15) return "fm-pill-teal";
+        if (minutes <= 45) return "fm-pill-amber";
+        return "fm-pill-crimson";
+    }
+
+    private static string GetAssetLabel(AssetType type) => type switch
+    {
+        AssetType.Toilet => "Inodoro",
+        AssetType.Sink => "Lavamanos",
+        AssetType.PaperDispenser => "Dispensador de Papel",
+        AssetType.HandDryer => "Secador de Manos",
+        _ => type.ToString()
+    };
+
+    private static string GetAssetColor(AssetType type) => type switch
+    {
+        AssetType.Toilet => "#0D9488",
+        AssetType.Sink => "#2563EB",
+        AssetType.PaperDispenser => "#7C3AED",
+        AssetType.HandDryer => "#D97706",
+        _ => "#475569"
+    };
+
+    private static MarkupString GetAssetSvg(AssetType type) => type switch
+    {
+        AssetType.Toilet => new MarkupString("<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M7 3h10v6H7z\"/><path d=\"M5 9h14v3a7 7 0 0 1-14 0V9z\"/><path d=\"M9 19v2h6v-2\"/></svg>"),
+        AssetType.Sink => new MarkupString("<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M12 3v5\"/><path d=\"M9 3h6\"/><path d=\"M4 10h16v2a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6v-2z\"/><path d=\"M10 18v3h4v-3\"/></svg>"),
+        AssetType.PaperDispenser => new MarkupString("<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><rect x=\"4\" y=\"4\" width=\"16\" height=\"12\" rx=\"2\"/><path d=\"M7 16v4h10v-4\"/><line x1=\"7\" y1=\"10\" x2=\"17\" y2=\"10\"/></svg>"),
+        AssetType.HandDryer => new MarkupString("<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><rect x=\"6\" y=\"3\" width=\"12\" height=\"12\" rx=\"2\"/><path d=\"M9 18v3M12 18v3M15 18v3\"/></svg>"),
+        _ => new MarkupString("<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><circle cx=\"12\" cy=\"12\" r=\"9\"/></svg>")
+    };
+}
