@@ -67,6 +67,7 @@ public class DeleteBuildingCommandHandler
             await context.Buildings.Where(b => b.Id == buildingId).
                 ExecuteUpdateAsync(s => s.SetProperty(p => p.IsDeleted, true));
 
+            await transaction.CommitAsync();
 
             foreach (var assetId in assetIdsToEvict)
                 topologyCache.RemoveAsset(assetId);

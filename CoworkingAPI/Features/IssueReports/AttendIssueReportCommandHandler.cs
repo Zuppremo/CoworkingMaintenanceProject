@@ -20,10 +20,10 @@ public class AttendIssueReportCommandHandler
     public async Task<bool> ExecuteAsync(Guid reportId, string operatorId = "")
     {
         var report = await context.IssueReports.FirstOrDefaultAsync(r => r.Id == reportId);
-        if (report == null) return false;
+        if (report == null || report.Status == ReportStatus.Resolved) return false;
 
         report.Status = ReportStatus.InProgress;
-        report.AttentionDate = DateTimeOffset.UtcNow;
+        report.AttentionDate ??= DateTimeOffset.UtcNow;
         if (!string.IsNullOrWhiteSpace(operatorId))
         {
             report.AssignedOperatorId = operatorId;

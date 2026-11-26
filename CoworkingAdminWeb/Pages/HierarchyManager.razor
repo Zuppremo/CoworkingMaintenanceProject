@@ -2,7 +2,9 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @using Coworking.Shared.Models.DTOs.Building
 @using Coworking.Shared.Models.DTOs.Rest
+@using System.Net
 @using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Authorization
 @using QRCoder
 @inject HttpClient Http
 @inject NavigationManager Navigation
@@ -17,16 +19,29 @@
     <p class="text-muted small mb-0">Administra la estructura física y genera códigos QR para el portal de reportes.</p>
 </div>
 
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger border-0 shadow-sm mb-4">@errorMessage</div>
+}
+
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div class="alert alert-success border-0 shadow-sm mb-4">@successMessage</div>
+}
+
 <div class="row g-4">
     <!-- Lista de Edificios -->
     <div class="col-md-4">
         <div class="fm-card overflow-hidden h-100">
             <div class="fm-card-header" style="background: #0F172A; color: #FFFFFF;">
                 <h2 class="fm-card-title text-white">Edificios</h2>
-                <button class="btn btn-sm" style="background: rgba(20,184,166,0.2); color: #2DD4BF; border: 1px solid rgba(20,184,166,0.35); font-weight: 700;" @onclick="() => showNewBuilding = true">+ Nuevo</button>
+                @if (isSuperAdmin)
+                {
+                    <button class="btn btn-sm" style="background: rgba(20,184,166,0.2); color: #2DD4BF; border: 1px solid rgba(20,184,166,0.35); font-weight: 700;" @onclick="() => showNewBuilding = true">+ Nuevo</button>
+                }
             </div>
             <div class="p-0">
-                @if (showNewBuilding)
+                @if (isSuperAdmin && showNewBuilding)
                 {
                     <div class="p-3 border-bottom" style="background: #F8FAFC;">
                         <input @bind="newBuildingName" class="fm-input w-100 mb-2" placeholder="Nombre (Ej. Urban 165)" />
@@ -45,7 +60,10 @@
                              style="cursor: pointer; @(isSelected ? "background: #F0FDFA; border-left: 3px solid #0D9488; color: #0F172A; font-weight: 700;" : "")"
                              @onclick="() => SelectBuilding(building)">
                             <span>@building.Name</span>
-                            <button class="btn btn-sm btn-outline-danger py-0 px-2" @onclick="() => DeleteBuilding(building.Id)" @onclick:stopPropagation="true">Eliminar</button>
+                            @if (isSuperAdmin)
+                            {
+                                <button class="btn btn-sm btn-outline-danger py-0 px-2" @onclick="() => DeleteBuilding(building.Id)" @onclick:stopPropagation="true">Eliminar</button>
+                            }
                         </div>
                     }
                 </div>
@@ -148,6 +166,49 @@
     </div>
 </div>
 
+@if (isSuperAdmin && selectedBuilding != null)
+{
+    var assignableUsers = users.Where(u => !u.Roles.Contains("SuperAdmin")).ToList();
+    <div class="fm-card overflow-hidden mt-4">
+        <div class="fm-card-header d-flex justify-content-between align-items-center" style="background: #0F172A; color: #FFFFFF;">
+            <div>
+                <h2 class="fm-card-title text-white mb-0">Acceso de Usuarios • @selectedBuilding.Name</h2>
+                <small style="color: #94A3B8;">Asigna qué usuarios pueden visualizar y administrar pisos, baños y topología de este edificio.</small>
+            </div>
+            <button class="btn-fm-accent py-1 px-3" @onclick="SaveBuildingUsers" disabled="@isSavingUsers">
+                @(isSavingUsers ? "Guardando..." : "Guardar Accesos")
+            </button>
+        </div>
+        <div class="p-3">
+            @if (!assignableUsers.Any())
+            {
+                <div class="text-muted small">No hay usuarios Admin o de limpieza registrados para asignar.</div>
+            }
+            else
+            {
+                <div class="row g-2">
+                    @foreach (var user in assignableUsers)
+                    {
+                        var isAssigned = assignedUserIds.Contains(user.UserId);
+                        <div class="col-md-6 col-lg-4">
+                            <label class="d-flex align-items-center justify-content-between p-2 rounded border @(isAssigned ? "border-success bg-light" : "")" style="cursor: pointer;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="checkbox"
+                                           class="form-check-input mt-0"
+                                           checked="@isAssigned"
+                                           @onchange="e => ToggleUserAssignment(user.UserId, (bool)(e.Value ?? false))" />
+                                    <span class="small fw-semibold">@user.Email</span>
+                                </div>
+                                <span class="badge bg-secondary">@string.Join(", ", user.Roles)</span>
+                            </label>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
 @if (selectedRestroomForQr != null && qrCodeImageBase64 != null)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
@@ -172,7 +233,16 @@
 }
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
     private List<BuildingDto> buildings = new();
+    private List<UserBuildingSummaryDto> users = new();
+    private HashSet<string> assignedUserIds = new();
+    private bool isSuperAdmin = false;
+    private bool isSavingUsers = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
     
     private BuildingDto? selectedBuilding;
     private FloorDto? selectedFloor;
@@ -208,21 +278,106 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (AuthenticationStateTask != null)
+        {
+            var authState = await AuthenticationStateTask;
+            isSuperAdmin = authState.User.IsInRole("SuperAdmin");
+        }
+
         await LoadHierarchy();
+
+        if (isSuperAdmin)
+        {
+            await LoadUsersAsync();
+        }
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        try
+        {
+            users = await Http.GetFromJsonAsync<List<UserBuildingSummaryDto>>("api/Hierarchy/users") ?? new();
+            SyncAssignedUsersSelection();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"No se pudieron cargar los usuarios: {ex.Message}";
+        }
+    }
+
+    private void SyncAssignedUsersSelection()
+    {
+        if (selectedBuilding == null)
+        {
+            assignedUserIds.Clear();
+            return;
+        }
+
+        assignedUserIds = users
+            .Where(u => u.AssignedBuildingIds.Contains(selectedBuilding.Id))
+            .Select(u => u.UserId)
+            .ToHashSet();
+    }
+
+    private void ToggleUserAssignment(string userId, bool isChecked)
+    {
+        if (isChecked)
+        {
+            assignedUserIds.Add(userId);
+        }
+        else
+        {
+            assignedUserIds.Remove(userId);
+        }
+    }
+
+    private async Task SaveBuildingUsers()
+    {
+        if (selectedBuilding == null) return;
+
+        isSavingUsers = true;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        try
+        {
+            var request = new UpdateBuildingUsersRequest { UserIds = assignedUserIds.ToList() };
+            var response = await Http.PutAsJsonAsync($"api/Hierarchy/buildings/{selectedBuilding.Id}/users", request);
+            if (!HandleResponse(response, "actualizar los accesos del edificio")) return;
+
+            await LoadUsersAsync();
+            successMessage = $"Accesos actualizados para {selectedBuilding.Name}.";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al guardar accesos: {ex.Message}";
+        }
+        finally
+        {
+            isSavingUsers = false;
+        }
     }
 
     private async Task LoadHierarchy()
     {
-        buildings = await Http.GetFromJsonAsync<List<BuildingDto>>("api/Hierarchy") ?? new();
-        
-        // Mantener selección si se refresca
-        if (selectedBuilding != null)
+        try
         {
-            selectedBuilding = buildings.FirstOrDefault(b => b.Id == selectedBuilding.Id);
-            if (selectedFloor != null && selectedBuilding != null)
+            errorMessage = string.Empty;
+            buildings = await Http.GetFromJsonAsync<List<BuildingDto>>("api/Hierarchy") ?? new();
+
+            // Mantener selección si se refresca
+            if (selectedBuilding != null)
             {
-                selectedFloor = selectedBuilding.Floors.FirstOrDefault(f => f.Id == selectedFloor.Id);
+                selectedBuilding = buildings.FirstOrDefault(b => b.Id == selectedBuilding.Id);
+                if (selectedFloor != null && selectedBuilding != null)
+                {
+                    selectedFloor = selectedBuilding.Floors.FirstOrDefault(f => f.Id == selectedFloor.Id);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"No se pudo cargar la jerarquía: {ex.Message}";
         }
     }
 
@@ -230,6 +385,8 @@
     {
         selectedBuilding = building;
         selectedFloor = null;
+        successMessage = string.Empty;
+        SyncAssignedUsersSelection();
     }
 
     private void SelectFloor(FloorDto floor)
@@ -240,10 +397,11 @@
     private async Task CreateBuilding()
     {
         if (string.IsNullOrWhiteSpace(newBuildingName)) return;
-        
+
         var request = new CreateBuildingRequest { Name = newBuildingName };
-        await Http.PostAsJsonAsync("api/Hierarchy/buildings", request);
-        
+        var response = await Http.PostAsJsonAsync("api/Hierarchy/buildings", request);
+        if (!HandleResponse(response, "crear el edificio")) return;
+
         newBuildingName = "";
         showNewBuilding = false;
         await LoadHierarchy();
@@ -251,7 +409,9 @@
 
     private async Task DeleteBuilding(Guid id)
     {
-        await Http.DeleteAsync($"api/Hierarchy/buildings/{id}");
+        var response = await Http.DeleteAsync($"api/Hierarchy/buildings/{id}");
+        if (!HandleResponse(response, "eliminar el edificio")) return;
+
         if (selectedBuilding?.Id == id) selectedBuilding = null;
         await LoadHierarchy();
     }
@@ -259,10 +419,11 @@
     private async Task CreateFloor()
     {
         if (selectedBuilding == null) return;
-        
+
         var request = new CreateFloorRequest { FloorNumber = newFloorNumber, BuildingId = selectedBuilding.Id };
-        await Http.PostAsJsonAsync("api/Hierarchy/floors", request);
-        
+        var response = await Http.PostAsJsonAsync("api/Hierarchy/floors", request);
+        if (!HandleResponse(response, "crear el piso")) return;
+
         newFloorNumber++;
         showNewFloor = false;
         await LoadHierarchy();
@@ -271,12 +432,27 @@
     private async Task CreateRestroom()
     {
         if (selectedFloor == null || string.IsNullOrWhiteSpace(newRestroomIdentifier)) return;
-        
+
         var request = new CreateRestroomRequest { Identifier = newRestroomIdentifier, FloorId = selectedFloor.Id };
-        await Http.PostAsJsonAsync("api/Hierarchy/restrooms", request);
-        
+        var response = await Http.PostAsJsonAsync("api/Hierarchy/restrooms", request);
+        if (!HandleResponse(response, "crear el baño")) return;
+
         newRestroomIdentifier = "";
         showNewRestroom = false;
         await LoadHierarchy();
+    }
+
+    private bool HandleResponse(HttpResponseMessage response, string action)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            errorMessage = string.Empty;
+            return true;
+        }
+
+        errorMessage = response.StatusCode == HttpStatusCode.Forbidden
+            ? $"No tienes permisos para {action} (requiere rol SuperAdmin)."
+            : $"Error al {action} ({(int)response.StatusCode}).";
+        return false;
     }
 }

@@ -45,6 +45,8 @@ builder.Services.AddScoped<DeleteBuildingCommandHandler>();
 builder.Services.AddScoped<CreateFloorCommandHandler>();
 builder.Services.AddScoped<CreateRestroomCommandHandler>();
 builder.Services.AddScoped<GetHierarchyQueryHandler>();
+builder.Services.AddScoped<GetUsersWithBuildingsQueryHandler>();
+builder.Services.AddScoped<UpdateBuildingUsersCommandHandler>();
 
 builder.Services.AddCors(options =>
 {

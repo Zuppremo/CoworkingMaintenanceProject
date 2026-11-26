@@ -1,4 +1,5 @@
 using Coworking.Shared.Enums;
+using Coworking.Shared.Extensions;
 using Coworking.Shared.Models.DTOs.Telemetry;
 
 namespace CoworkingAdminWeb.Services;
@@ -38,10 +39,11 @@ public class GridEditorState
     {
         if (DraggedAssetType == null) return false;
 
-        // Validar colisiones lógicas (excluyendo el propio elemento si se está moviendo)
-        if (PlacedAssets.Any(a => a.PositionX == x && a.PositionY == y && a.Id != DraggedAssetId))
+        // Validar colisiones lógicas por capa de montaje (Floor/Wall), consistente con el backend
+        var targetLayer = DraggedAssetType.Value.GetMountingLayer();
+        if (PlacedAssets.Any(a => a.PositionX == x && a.PositionY == y && a.Type.GetMountingLayer() == targetLayer && a.Id != DraggedAssetId))
         {
-            return false; // Ya hay un elemento aquí
+            return false; // Ya hay un elemento en esa capa aquí
         }
 
         if (DraggedAssetId.HasValue)
