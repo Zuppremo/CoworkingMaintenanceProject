@@ -63,6 +63,26 @@ public static class DataSeeder
             }
         }
 
+        // Seed CleaningStaff Mock
+        var cleaningStaffEmail = "operario@coworking.com";
+        var cleaningStaffUser = await userManager.FindByEmailAsync(cleaningStaffEmail);
+
+        if (cleaningStaffUser == null)
+        {
+            cleaningStaffUser = new ApplicationUser
+            {
+                UserName = cleaningStaffEmail,
+                Email = cleaningStaffEmail,
+                EmailConfirmed = true
+            };
+
+            var result = await userManager.CreateAsync(cleaningStaffUser, "Cleaning123*");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(cleaningStaffUser, "CleaningStaff");
+            }
+        }
+
         // Create Mock Building if not exists
         var buildingName = "Edificio Norte (Mock)";
         var mockBuilding = await dbContext.Buildings.FirstOrDefaultAsync(b => b.Name == buildingName);
@@ -109,6 +129,23 @@ public static class DataSeeder
                 { 
                     UserId = adminUser.Id, 
                     BuildingId = mockBuilding.Id 
+                });
+                await dbContext.SaveChangesAsync();
+            }
+        }
+
+        // Assign building to CleaningStaff User
+        if (cleaningStaffUser != null && mockBuilding != null)
+        {
+            var cleaningBuildingExists = await dbContext.UserBuildings
+                .AnyAsync(ub => ub.UserId == cleaningStaffUser.Id && ub.BuildingId == mockBuilding.Id);
+
+            if (!cleaningBuildingExists)
+            {
+                dbContext.UserBuildings.Add(new UserBuilding
+                {
+                    UserId = cleaningStaffUser.Id,
+                    BuildingId = mockBuilding.Id
                 });
                 await dbContext.SaveChangesAsync();
             }
