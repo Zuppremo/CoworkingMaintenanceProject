@@ -2,36 +2,134 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:CoworkingMobile.ViewModels.Auth"
+             xmlns:fonts="clr-namespace:Fonts"
              x:DataType="viewmodels:LoginViewModel"
              x:Class="CoworkingMobile.Pages.Auth.LoginPage"
-             Title="Login">
-             
-    <ScrollView>
-        <VerticalStackLayout Spacing="25" Padding="30,50" VerticalOptions="Center">
-            
-            <Label Text="👷‍♂️" FontSize="64" HorizontalOptions="Center" />
-            <Label Text="Coworking Maintenance" FontSize="24" FontAttributes="Bold" HorizontalOptions="Center" />
-            <Label Text="Inicia sesión para recibir alertas de aseo" FontSize="14" TextColor="Gray" HorizontalOptions="Center" Margin="0,0,0,20"/>
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#0F172A">
 
-            <Entry Placeholder="Correo Electrónico"
-                   Text="{Binding Email}"
-                   Keyboard="Email"
-                   ClearButtonVisibility="WhileEditing" />
+    <Grid RowDefinitions="Auto, *">
+        <!-- Architectural Brand Header -->
+        <VerticalStackLayout Grid.Row="0" Padding="28,48,28,32" Spacing="12">
+            <Border WidthRequest="56"
+                    HeightRequest="56"
+                    HorizontalOptions="Start"
+                    BackgroundColor="#1E293B"
+                    Stroke="#14B8A6"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 14">
+                <Label Text="{x:Static fonts:FluentUI.building_24_regular}"
+                       FontFamily="{x:Static fonts:FluentUI.FontFamily}"
+                       FontSize="26"
+                       TextColor="#14B8A6"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center" />
+            </Border>
 
-            <Entry Placeholder="Contraseña"
-                   Text="{Binding Password}"
-                   IsPassword="True"
-                   ClearButtonVisibility="WhileEditing" />
+            <Label Text="URBAN 165  •  BOGOTÁ D.C."
+                   FontSize="11"
+                   FontAttributes="Bold"
+                   CharacterSpacing="1.6"
+                   TextColor="#2DD4BF" />
 
-            <Button Text="Ingresar"
-                    Command="{Binding LoginCommand}"
-                    
-                    Margin="0,20,0,0" />
+            <Label Text="Operaciones de Campo"
+                   FontSize="26"
+                   FontAttributes="Bold"
+                   TextColor="White" />
 
-            <ActivityIndicator IsRunning="{Binding IsBusy}" 
-                               IsVisible="{Binding IsBusy}" 
-                               HorizontalOptions="Center" />
-
+            <Label Text="Plataforma en tiempo real para el equipo de servicios generales y mantenimiento."
+                   FontSize="13"
+                   TextColor="#94A3B8"
+                   LineHeight="1.3" />
         </VerticalStackLayout>
-    </ScrollView>
+
+        <!-- Clean Light Card Surface -->
+        <Border Grid.Row="1"
+                BackgroundColor="#F8FAFC"
+                StrokeThickness="0"
+                StrokeShape="RoundRectangle 28,28,0,0"
+                Padding="24,32">
+            <ScrollView>
+                <VerticalStackLayout Spacing="18">
+                    <Label Text="Iniciar Sesión"
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           TextColor="#0F172A" />
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="CORREO ELECTRÓNICO"
+                               FontSize="11"
+                               FontAttributes="Bold"
+                               CharacterSpacing="0.8"
+                               TextColor="#64748B" />
+                        <Border BackgroundColor="White"
+                                Stroke="#CBD5E1"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 12"
+                                Padding="12,4">
+                            <Grid ColumnDefinitions="Auto, *" ColumnSpacing="10">
+                                <Label Grid.Column="0"
+                                       Text="{x:Static fonts:FluentUI.person_24_regular}"
+                                       FontFamily="{x:Static fonts:FluentUI.FontFamily}"
+                                       FontSize="18"
+                                       TextColor="#64748B"
+                                       VerticalOptions="Center" />
+                                <Entry Grid.Column="1"
+                                       Placeholder="operario@coworking.com"
+                                       PlaceholderColor="#94A3B8"
+                                       TextColor="#0F172A"
+                                       Text="{Binding Email}"
+                                       Keyboard="Email"
+                                       ClearButtonVisibility="WhileEditing" />
+                            </Grid>
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="CONTRASEÑA"
+                               FontSize="11"
+                               FontAttributes="Bold"
+                               CharacterSpacing="0.8"
+                               TextColor="#64748B" />
+                        <Border BackgroundColor="White"
+                                Stroke="#CBD5E1"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 12"
+                                Padding="12,4">
+                            <Grid ColumnDefinitions="Auto, *" ColumnSpacing="10">
+                                <Label Grid.Column="0"
+                                       Text="{x:Static fonts:FluentUI.wrench_24_regular}"
+                                       FontFamily="{x:Static fonts:FluentUI.FontFamily}"
+                                       FontSize="18"
+                                       TextColor="#64748B"
+                                       VerticalOptions="Center" />
+                                <Entry Grid.Column="1"
+                                       Placeholder="Ingresa tu contraseña"
+                                       PlaceholderColor="#94A3B8"
+                                       TextColor="#0F172A"
+                                       Text="{Binding Password}"
+                                       IsPassword="True"
+                                       ClearButtonVisibility="WhileEditing" />
+                            </Grid>
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <Button Text="Ingresar al Panel"
+                            Command="{Binding LoginCommand}"
+                            BackgroundColor="#0D9488"
+                            TextColor="White"
+                            FontAttributes="Bold"
+                            FontSize="15"
+                            HeightRequest="50"
+                            CornerRadius="12"
+                            Margin="0,10,0,0" />
+
+                    <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                       IsVisible="{Binding IsBusy}"
+                                       Color="#0D9488"
+                                       HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </ScrollView>
+        </Border>
+    </Grid>
 </ContentPage>

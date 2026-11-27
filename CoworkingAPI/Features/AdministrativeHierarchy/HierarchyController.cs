@@ -15,19 +15,25 @@ public class  HierarchyController : ControllerBase
     private readonly CreateFloorCommandHandler createFloorCommandHandler;
     private readonly CreateRestroomCommandHandler createRestroomCommandHandler;
     private readonly GetHierarchyQueryHandler getHierarchyQueryHandler;
+    private readonly GetUsersWithBuildingsQueryHandler getUsersWithBuildingsQueryHandler;
+    private readonly UpdateBuildingUsersCommandHandler updateBuildingUsersCommandHandler;
 
     public HierarchyController(
         CreateBuildingCommandHandler createBuildingCommandHandler,
         DeleteBuildingCommandHandler deleteBuildingCommandHandler,
         CreateFloorCommandHandler createFloorCommandHandler,
         CreateRestroomCommandHandler createRestroomCommandHandler,
-        GetHierarchyQueryHandler getHierarchyQueryHandler)
+        GetHierarchyQueryHandler getHierarchyQueryHandler,
+        GetUsersWithBuildingsQueryHandler getUsersWithBuildingsQueryHandler,
+        UpdateBuildingUsersCommandHandler updateBuildingUsersCommandHandler)
     {
         this.createBuildingCommandHandler = createBuildingCommandHandler;
         this.deleteBuildingCommandHandler = deleteBuildingCommandHandler;
         this.createFloorCommandHandler = createFloorCommandHandler;
         this.createRestroomCommandHandler = createRestroomCommandHandler;
         this.getHierarchyQueryHandler = getHierarchyQueryHandler;
+        this.getUsersWithBuildingsQueryHandler = getUsersWithBuildingsQueryHandler;
+        this.updateBuildingUsersCommandHandler = updateBuildingUsersCommandHandler;
     }
 
     [HttpGet]
@@ -70,5 +76,22 @@ public class  HierarchyController : ControllerBase
         var id = await createRestroomCommandHandler.ExecuteAsync(request);
         if (id == null) return NotFound("Floor not found");
         return Ok(new { Id = id });
+    }
+
+    [Authorize(Roles = "SuperAdmin")]
+    [HttpGet("users")]
+    public async Task<ActionResult<List<UserBuildingSummaryDto>>> GetUsersWithBuildings()
+    {
+        var result = await getUsersWithBuildingsQueryHandler.ExecuteAsync();
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "SuperAdmin")]
+    [HttpPut("buildings/{buildingId}/users")]
+    public async Task<IActionResult> UpdateBuildingUsers(Guid buildingId, [FromBody] UpdateBuildingUsersRequest request)
+    {
+        var success = await updateBuildingUsersCommandHandler.ExecuteAsync(buildingId, request);
+        if (!success) return NotFound("Building not found");
+        return Ok();
     }
 }

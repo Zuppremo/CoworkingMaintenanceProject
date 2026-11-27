@@ -21,6 +21,7 @@ public class ResolveIssueReportCommandHandler
     {
         var report = await context.IssueReports.FirstOrDefaultAsync(r => r.Id == reportId);
         if (report == null) return false;
+        if (report.Status == ReportStatus.Resolved) return true;
 
         report.Status = ReportStatus.Resolved;
         report.ResolutionDate = DateTimeOffset.UtcNow;

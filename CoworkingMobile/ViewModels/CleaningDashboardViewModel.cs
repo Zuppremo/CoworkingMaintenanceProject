@@ -5,12 +5,14 @@ using Coworking.Shared.Enums;
 using Coworking.Shared.Models.DTOs;
 using Coworking.Shared.Models.DTOs.Telemetry;
 using CoworkingMobile.Services;
+using Fonts;
 
 namespace CoworkingMobile.ViewModels;
 
 public partial class CleaningDashboardViewModel : ObservableObject
 {
     private readonly IssueReportsService issueService;
+    private readonly AuthService authService;
 
     [ObservableProperty]
     private bool isRefreshing;
@@ -19,20 +21,27 @@ public partial class CleaningDashboardViewModel : ObservableObject
     private bool isConnected;
 
     [ObservableProperty]
-    private string connectionStatusText = "Conectando al servidor...";
+    private string connectionStatusText = "Conectando con servidor...";
 
     [ObservableProperty]
-    private string connectionColor = "#FFA500"; // Naranja
+    private string connectionColor = "#D97706";
+
+    [ObservableProperty]
+    private string connectionBadgeBg = "#33D97706";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasNoIssues))]
     private int activeCount;
 
+    [ObservableProperty]
+    private int pendingCount;
+
+    [ObservableProperty]
+    private int inProgressCount;
+
     public bool HasNoIssues => ActiveCount == 0;
 
     public ObservableCollection<IssueItemViewModel> ActiveIssues { get; } = new();
-
-    private readonly AuthService authService;
 
     public CleaningDashboardViewModel(IssueReportsService issueService, AuthService authService)
     {
@@ -63,8 +72,9 @@ public partial class CleaningDashboardViewModel : ObservableObject
         MainThread.BeginInvokeOnMainThread(() =>
         {
             IsConnected = issueService.IsConnected;
-            ConnectionStatusText = IsConnected ? "🟢 En vivo (SignalR Conectado)" : "🔴 Sin conexión al servidor";
-            ConnectionColor = IsConnected ? "#28A745" : "#DC3545";
+            ConnectionStatusText = IsConnected ? "SignalR en vivo" : "Sin conexión";
+            ConnectionColor = IsConnected ? "#14B8A6" : "#EF4444";
+            ConnectionBadgeBg = IsConnected ? "#2614B8A6" : "#26EF4444";
         });
     }
 
@@ -75,7 +85,7 @@ public partial class CleaningDashboardViewModel : ObservableObject
         try
         {
             var issues = await issueService.GetActiveIssuesAsync();
-            
+
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 ActiveIssues.Clear();
@@ -83,7 +93,7 @@ public partial class CleaningDashboardViewModel : ObservableObject
                 {
                     ActiveIssues.Add(new IssueItemViewModel(issue));
                 }
-                ActiveCount = ActiveIssues.Count;
+                RecalculateCounts();
             });
         }
         finally
@@ -92,23 +102,28 @@ public partial class CleaningDashboardViewModel : ObservableObject
         }
     }
 
+    private void RecalculateCounts()
+    {
+        ActiveCount = ActiveIssues.Count;
+        PendingCount = ActiveIssues.Count(i => i.Status == ReportStatus.Generated);
+        InProgressCount = ActiveIssues.Count(i => i.Status == ReportStatus.InProgress);
+    }
+
     private void HandleReportStatusUpdated(ReportStatusUpdateTelemetry telemetry)
     {
         MainThread.BeginInvokeOnMainThread(async () =>
         {
-            // Si el estado es Resolved (2), removemos la tarjeta de la lista
             if (telemetry.Status == ReportStatus.Resolved)
             {
                 var existing = ActiveIssues.FirstOrDefault(i => i.Id == telemetry.ReportId);
                 if (existing != null)
                 {
                     ActiveIssues.Remove(existing);
-                    ActiveCount = ActiveIssues.Count;
+                    RecalculateCounts();
                 }
             }
             else
             {
-                // Si es un nuevo reporte o cambió a InProgress, refrescamos la lista
                 await LoadIssuesAsync();
             }
         });
@@ -122,6 +137,7 @@ public partial class CleaningDashboardViewModel : ObservableObject
         if (success)
         {
             item.Status = ReportStatus.InProgress;
+            RecalculateCounts();
         }
     }
 
@@ -133,7 +149,7 @@ public partial class CleaningDashboardViewModel : ObservableObject
         if (success)
         {
             ActiveIssues.Remove(item);
-            ActiveCount = ActiveIssues.Count;
+            RecalculateCounts();
         }
     }
 }
@@ -146,11 +162,15 @@ public partial class IssueItemViewModel : ObservableObject
     public int FloorNumber { get; }
     public string RestroomIdentifier { get; }
     public AssetType AssetType { get; }
+    public short PositionX { get; }
+    public short PositionY { get; }
     public DateTimeOffset GenerationDate { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusBadgeText))]
     [NotifyPropertyChangedFor(nameof(StatusBadgeColor))]
+    [NotifyPropertyChangedFor(nameof(StatusSoftBgColor))]
+    [NotifyPropertyChangedFor(nameof(StatusIconGlyph))]
     [NotifyPropertyChangedFor(nameof(CanAttend))]
     private ReportStatus status;
 
@@ -162,19 +182,32 @@ public partial class IssueItemViewModel : ObservableObject
         FloorNumber = dto.FloorNumber;
         RestroomIdentifier = dto.RestroomIdentifier;
         AssetType = dto.AssetType;
+        PositionX = dto.PositionX;
+        PositionY = dto.PositionY;
         GenerationDate = dto.GenerationDate;
         Status = dto.Status;
     }
 
-    public string LocationText => $"🏢 {BuildingName} • Piso {FloorNumber} • {RestroomIdentifier}";
+    public string LocationText => $"{BuildingName}  •  Piso {FloorNumber}  •  {RestroomIdentifier}";
 
-    public string AssetIconAndName => AssetType switch
+    public string CoordinatesText => $"Coord ({PositionX}, {PositionY})";
+
+    public string AssetName => AssetType switch
     {
-        AssetType.Toilet => "🚽 Inodoro",
-        AssetType.Sink => "🚰 Lavamanos",
-        AssetType.HandDryer => "💨 Secador",
-        AssetType.PaperDispenser => "🧻 Dispensador",
-        _ => "🔧 Activo"
+        AssetType.Toilet => "Inodoro",
+        AssetType.Sink => "Lavamanos",
+        AssetType.HandDryer => "Secador",
+        AssetType.PaperDispenser => "Dispensador",
+        _ => "Activo"
+    };
+
+    public string AssetIconGlyph => AssetType switch
+    {
+        AssetType.Toilet => FluentUI.wrench_24_regular,
+        AssetType.Sink => FluentUI.drop_24_regular,
+        AssetType.HandDryer => FluentUI.weather_blowing_snow_24_regular,
+        AssetType.PaperDispenser => FluentUI.document_24_regular,
+        _ => FluentUI.wrench_24_regular
     };
 
     public string ElapsedTimeText
@@ -182,7 +215,7 @@ public partial class IssueItemViewModel : ObservableObject
         get
         {
             var span = DateTimeOffset.UtcNow - GenerationDate;
-            if (span.TotalMinutes < 1) return "Justo ahora";
+            if (span.TotalMinutes < 1) return "Reportado hace un momento";
             if (span.TotalMinutes < 60) return $"Hace {(int)span.TotalMinutes} min";
             if (span.TotalHours < 24) return $"Hace {(int)span.TotalHours} h";
             return $"Hace {(int)span.TotalDays} d";
@@ -191,18 +224,34 @@ public partial class IssueItemViewModel : ObservableObject
 
     public string StatusBadgeText => Status switch
     {
-        ReportStatus.Generated => "⚠️ PENDIENTE",
-        ReportStatus.InProgress => "⏳ EN ATENCIÓN",
-        ReportStatus.Resolved => "✅ RESUELTO",
-        _ => Status.ToString()
+        ReportStatus.Generated => "PENDIENTE",
+        ReportStatus.InProgress => "EN ATENCIÓN",
+        ReportStatus.Resolved => "RESUELTO",
+        _ => Status.ToString().ToUpperInvariant()
     };
 
     public string StatusBadgeColor => Status switch
     {
-        ReportStatus.Generated => "#DC3545", // Rojo
-        ReportStatus.InProgress => "#FFC107", // Amarillo
-        ReportStatus.Resolved => "#28A745", // Verde
-        _ => "#6C757D"
+        ReportStatus.Generated => "#DC2626",
+        ReportStatus.InProgress => "#D97706",
+        ReportStatus.Resolved => "#0D9488",
+        _ => "#64748B"
+    };
+
+    public string StatusSoftBgColor => Status switch
+    {
+        ReportStatus.Generated => "#FEF2F2",
+        ReportStatus.InProgress => "#FFFBEB",
+        ReportStatus.Resolved => "#F0FDFA",
+        _ => "#F1F5F9"
+    };
+
+    public string StatusIconGlyph => Status switch
+    {
+        ReportStatus.Generated => FluentUI.warning_24_regular,
+        ReportStatus.InProgress => FluentUI.clock_24_regular,
+        ReportStatus.Resolved => FluentUI.checkmark_circle_24_regular,
+        _ => FluentUI.alert_urgent_24_regular
     };
 
     public bool CanAttend => Status == ReportStatus.Generated;

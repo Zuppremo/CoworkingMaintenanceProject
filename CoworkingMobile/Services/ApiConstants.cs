@@ -3,7 +3,7 @@ namespace CoworkingMobile.Services;
 public static class ApiConstants
 {
     // Set to true if you want to test against your local API instead of Azure
-    public const bool UseLocalApi = false;
+    public const bool UseLocalApi = true;
 
     public const string ProductionApiUrl = "https://coworkingapi-e8dbgdbgdsfea9bv.canadacentral-01.azurewebsites.net";
 

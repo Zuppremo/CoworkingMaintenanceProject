@@ -54,6 +54,10 @@ public class AuthService
         }
 
         await localStorage.SetItemAsync("authToken", result.AccessToken);
+        if (result.ExpiresIn > 0)
+        {
+            await localStorage.SetItemAsync("tokenExpiry", DateTimeOffset.UtcNow.AddSeconds(result.ExpiresIn));
+        }
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
 
         var meResponse = await httpClient.GetAsync("api/auth/me");
@@ -75,6 +79,7 @@ public class AuthService
     {
         await localStorage.RemoveItemAsync("authToken");
         await localStorage.RemoveItemAsync("userInfo");
+        await localStorage.RemoveItemAsync("tokenExpiry");
         ((JwtAuthenticationStateProvider)authenticationStateProvider).MarkUserAsLoggedOut();
         httpClient.DefaultRequestHeaders.Authorization = null;
     }

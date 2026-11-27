@@ -9,43 +9,55 @@
 @inject HttpClient Http
 @inject NavigationManager Nav
 
-<div class="container py-4" style="max-width: 600px;">
-    
-    <!-- Encabezado con estética limpia para celular -->
+<PageTitle>Reporte QR | Urban 165</PageTitle>
+
+<div class="container py-4" style="max-width: 560px;">
     <div class="text-center mb-4">
-        <div class="display-5 mb-2">🚽 📱</div>
-        <h3 class="fw-bold text-dark mb-1">Reporte Rápido de Baño</h3>
-        <p class="text-muted small">Escaneo QR • Coworking Maintenance</p>
+        <div class="d-inline-flex align-items-center justify-content-center rounded-4 mb-3" style="width: 52px; height: 52px; background: #0F172A; color: #14B8A6;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <path d="M14 14h3v3h-3zM17 17h4v4h-4zM14 20h3" />
+            </svg>
+        </div>
+        <div class="text-uppercase fw-bold small mb-1" style="letter-spacing: 0.1em; color: #0D9488;">URBAN 165 • PORTAL QR</div>
+        <h1 class="h4 fw-bold text-dark mb-1">Reporte Rápido de Incidencia</h1>
+        <p class="text-muted small mb-0">Notificación directa en tiempo real al personal de servicios generales</p>
     </div>
 
     @if (isSuccess)
     {
-        <div class="card border-0 shadow-sm text-center p-4 bg-white rounded-4">
-            <div class="display-3 text-success mb-3">✅</div>
-            <h4 class="fw-bold text-success mb-2">¡Reporte Enviado!</h4>
-            <p class="text-muted mb-4">
+        <div class="fm-card text-center p-5">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 64px; height: 64px; background: #F0FDFA; color: #0D9488; border: 1px solid rgba(13, 148, 136, 0.25);">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                </svg>
+            </div>
+            <h2 class="h4 fw-bold text-dark mb-2">Reporte Enviado</h2>
+            <p class="text-muted small mb-4">
                 El equipo de limpieza y mantenimiento ha recibido la alerta en tiempo real en su aplicación móvil.
             </p>
-            <button class="btn btn-outline-primary rounded-pill px-4 py-2" @onclick="ResetForm">
-                Hacer otro reporte
+            <button class="btn-fm-outline px-4" @onclick="ResetForm">
+                Registrar otro reporte
             </button>
         </div>
     }
     else
     {
-        <div class="card border-0 shadow-sm p-4 bg-white rounded-4">
+        <div class="fm-card p-4">
             @if (isLoading)
             {
                 <div class="text-center py-5">
-                    <div class="spinner-border text-primary mb-3" role="status"></div>
-                    <p class="text-muted">Cargando información del baño...</p>
+                    <div class="spinner-border text-secondary mb-3" role="status"></div>
+                    <p class="text-muted small mb-0">Cargando plano de activos del baño...</p>
                 </div>
             }
             else
             {
                 @if (!string.IsNullOrEmpty(errorMessage))
                 {
-                    <div class="alert alert-danger py-2 small mb-3">
+                    <div class="alert alert-danger border-0 py-2 px-3 small mb-3">
                         @errorMessage
                     </div>
                 }
@@ -53,89 +65,117 @@
                 @if (RestroomIdParam == null)
                 {
                     <div class="text-center py-4">
-                        <span class="display-1">📷</span>
-                        <h4 class="mt-3">Se requiere código QR</h4>
-                        <p class="text-muted">
-                            Por favor, escanea el código QR que se encuentra en la puerta o el espejo del baño para poder reportar una falla.
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-3 mb-3" style="width: 56px; height: 56px; background: #F1F5F9; color: #334155;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <rect x="3" y="3" width="7" height="7" rx="1" />
+                                <rect x="14" y="3" width="7" height="7" rx="1" />
+                                <rect x="3" y="14" width="7" height="7" rx="1" />
+                                <path d="M14 14h7v7h-7z" />
+                            </svg>
+                        </div>
+                        <h2 class="h5 fw-bold text-dark">Se requiere código QR</h2>
+                        <p class="text-muted small mb-0">
+                            Escanea el código QR ubicado en la entrada o espejo del baño para identificar automáticamente la zona y sus activos.
                         </p>
                     </div>
                 }
                 else if (currentLayout != null)
                 {
-                    <div class="alert alert-light border d-flex align-items-center gap-2 py-2 mb-3">
-                        <span class="fs-5">📍</span>
-                        <div>
-                            <div class="fw-bold small text-dark">@currentLayout.Identifier</div>
-                            <div class="text-muted small">Baño preseleccionado por QR</div>
+                    <div class="d-flex align-items-center justify-content-between p-3 rounded-3 mb-4" style="background: #F8FAFC; border: 1px solid #E2E8F0;">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="d-inline-flex align-items-center justify-content-center rounded-2" style="width: 34px; height: 34px; background: #0F172A; color: #14B8A6;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                </svg>
+                            </span>
+                            <div>
+                                <div class="fw-bold small text-dark">@currentLayout.Identifier</div>
+                                <div class="text-muted" style="font-size: 0.74rem;">Ubicación verificada por QR</div>
+                            </div>
                         </div>
+                        <span class="fm-pill fm-pill-teal">ACTIVO</span>
                     </div>
                 }
 
-                <!-- Selector de Elemento del Baño -->
                 @if (currentLayout != null && currentLayout.Assets.Any())
                 {
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small text-secondary">1. ¿Qué elemento tiene la falla?</label>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-secondary text-uppercase" style="letter-spacing: 0.04em;">1. Selecciona el activo afectado</label>
                         <div class="d-grid gap-2">
                             @foreach (var asset in currentLayout.Assets)
                             {
                                 var isSelected = selectedAssetId == asset.Id;
-                                <button type="button" 
-                                        class="btn text-start p-3 rounded-3 d-flex align-items-center justify-content-between @(isSelected ? "btn-primary shadow-sm" : "btn-outline-secondary")"
+                                <button type="button"
+                                        class="btn text-start p-3 rounded-3 d-flex align-items-center justify-content-between"
+                                        style="@(isSelected ? "background: #0F172A; color: #FFFFFF; border: 1px solid #0F172A;" : "background: #FFFFFF; color: #0F172A; border: 1px solid #CBD5E1;")"
                                         @onclick="() => SelectAsset(asset.Id)">
-                                    <span class="d-flex align-items-center gap-2">
-                                        <span class="fs-4">@GetAssetIcon(asset.Type)</span>
-                                        <span class="fw-bold">@GetAssetLabel(asset.Type, asset.PositionX, asset.PositionY)</span>
+                                    <span class="d-flex align-items-center gap-3">
+                                        <span class="d-inline-flex align-items-center justify-content-center rounded-2"
+                                              style="width: 34px; height: 34px; background: @(isSelected ? "rgba(20,184,166,0.2)" : "#F1F5F9"); color: @(isSelected ? "#2DD4BF" : "#334155");">
+                                            @GetAssetSvg(asset.Type)
+                                        </span>
+                                        <span>
+                                            <span class="fw-bold d-block small">@GetAssetLabel(asset.Type)</span>
+                                            <span class="mono-num" style="font-size: 0.72rem; opacity: 0.75;">Coordenada (@asset.PositionX, @asset.PositionY)</span>
+                                        </span>
                                     </span>
                                     @if (isSelected)
                                     {
-                                        <span>✓</span>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2.5">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
                                     }
                                 </button>
                             }
                         </div>
                     </div>
 
-                    <!-- Botones de Fallas Comunes -->
                     <div class="mb-4">
-                        <label class="form-label fw-bold small text-secondary">2. ¿Cuál es el problema?</label>
-                        <div class="d-flex flex-wrap gap-2 mb-2">
+                        <label class="form-label fw-bold small text-secondary text-uppercase" style="letter-spacing: 0.04em;">2. Describe la novedad</label>
+                        <div class="d-flex flex-wrap gap-2 mb-3">
                             @foreach (var reason in commonReasons)
                             {
                                 var isSelected = selectedReason == reason;
-                                <button type="button" 
-                                        class="btn btn-sm rounded-pill px-3 py-2 @(isSelected ? "btn-dark" : "btn-light border text-secondary")"
+                                <button type="button"
+                                        class="btn btn-sm rounded-3 px-3 py-2 fw-semibold"
+                                        style="@(isSelected ? "background: #0D9488; color: #FFFFFF; border: 1px solid #0D9488;" : "background: #F8FAFC; color: #334155; border: 1px solid #E2E8F0;")"
                                         @onclick="() => SelectReason(reason)">
                                     @reason
                                 </button>
                             }
                         </div>
 
-                        <!-- Campo de texto opcional -->
-                        <input type="text" 
-                               class="form-control mt-2" 
-                               placeholder="O escribe otro detalle aquí..." 
+                        <input type="text"
+                               class="fm-input w-100"
+                               placeholder="O especifica otro detalle aquí..."
                                @bind="customDescription" />
                     </div>
 
-                    <!-- Botón Enviar -->
-                    <button class="btn btn-danger w-100 py-3 rounded-pill fw-bold fs-5 shadow" 
+                    <button class="btn-fm-primary w-100 py-3"
+                            style="background-color: #DC2626; border-color: #DC2626;"
                             disabled="@(selectedAssetId == null || (string.IsNullOrWhiteSpace(selectedReason) && string.IsNullOrWhiteSpace(customDescription)) || isSubmitting)"
                             @onclick="SubmitReport">
                         @if (isSubmitting)
                         {
-                            <span>Enviando reporte...</span>
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span>Enviando alerta...</span>
                         }
                         else
                         {
-                            <span>🚨 Enviar Reporte</span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                <line x1="12" y1="9" x2="12" y2="13" />
+                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                            <span>Enviar Alerta de Mantenimiento</span>
                         }
                     </button>
                 }
                 else if (currentLayout != null && !currentLayout.Assets.Any())
                 {
-                    <div class="alert alert-warning py-3 small text-center">
-                        Este baño no tiene activos registrados aún en el plano.
+                    <div class="alert alert-warning border-0 py-3 small text-center mb-0">
+                        Este baño aún no tiene activos configurados en el plano bidimensional.
                     </div>
                 }
             }
@@ -159,12 +199,12 @@
 
     private readonly string[] commonReasons = new[]
     {
-        "🧻 Sin papel higiénico",
-        "🧼 Sin jabón de manos",
-        "⚠️ Inodoro tapado / averiado",
-        "🧹 Requiere aseo urgente",
-        "💧 Fuga continua de agua",
-        "💨 Secador no enciende"
+        "Sin papel higiénico",
+        "Sin jabón de manos",
+        "Inodoro tapado / averiado",
+        "Requiere aseo urgente",
+        "Fuga continua de agua",
+        "Secador no enciende"
     };
 
     protected override async Task OnInitializedAsync()
@@ -194,19 +234,6 @@
         }
     }
 
-    private async Task OnRestroomDropdownChanged(ChangeEventArgs e)
-    {
-        if (Guid.TryParse(e.Value?.ToString(), out Guid restroomId))
-        {
-            await LoadRestroomLayoutAsync(restroomId);
-        }
-        else
-        {
-            currentLayout = null;
-            selectedAssetId = null;
-        }
-    }
-
     private async Task LoadRestroomLayoutAsync(Guid id)
     {
         try
@@ -220,10 +247,7 @@
         }
     }
 
-    private void SelectAsset(Guid id)
-    {
-        selectedAssetId = id;
-    }
+    private void SelectAsset(Guid id) => selectedAssetId = id;
 
     private void SelectReason(string reason)
     {
@@ -235,8 +259,8 @@
     {
         if (!selectedAssetId.HasValue) return;
 
-        var description = !string.IsNullOrWhiteSpace(customDescription) 
-            ? customDescription 
+        var description = !string.IsNullOrWhiteSpace(customDescription)
+            ? customDescription
             : selectedReason;
 
         if (string.IsNullOrWhiteSpace(description)) return;
@@ -261,9 +285,9 @@
             else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
                 var errorObj = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
-                errorMessage = errorObj != null && errorObj.TryGetValue("error", out var msg) 
-                    ? $"⚠️ {msg}" 
-                    : "⚠️ Este elemento ya tiene un reporte activo pendiente de atención.";
+                errorMessage = errorObj != null && errorObj.TryGetValue("error", out var msg)
+                    ? msg
+                    : "Este elemento ya tiene un reporte activo pendiente de atención.";
             }
             else
             {
@@ -288,21 +312,21 @@
         customDescription = string.Empty;
     }
 
-    private string GetAssetIcon(AssetType type) => type switch
+    private static string GetAssetLabel(AssetType type) => type switch
     {
-        AssetType.Toilet => "🚽",
-        AssetType.Sink => "🚰",
-        AssetType.HandDryer => "💨",
-        AssetType.PaperDispenser => "🧻",
-        _ => "🔧"
+        AssetType.Toilet => "Inodoro",
+        AssetType.Sink => "Lavamanos",
+        AssetType.HandDryer => "Secador de manos",
+        AssetType.PaperDispenser => "Dispensador de papel",
+        _ => "Activo"
     };
 
-    private string GetAssetLabel(AssetType type, short x, short y) => type switch
+    private static MarkupString GetAssetSvg(AssetType type) => type switch
     {
-        AssetType.Toilet => $"Inodoro (Pos: {x},{y})",
-        AssetType.Sink => $"Lavamanos (Pos: {x},{y})",
-        AssetType.HandDryer => $"Secador de manos",
-        AssetType.PaperDispenser => $"Dispensador de papel",
-        _ => $"Activo ({x},{y})"
+        AssetType.Toilet => new MarkupString("<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M7 3h10v6H7z\"/><path d=\"M5 9h14v3a7 7 0 0 1-14 0V9z\"/><path d=\"M9 19v2h6v-2\"/></svg>"),
+        AssetType.Sink => new MarkupString("<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M12 3v5\"/><path d=\"M9 3h6\"/><path d=\"M4 10h16v2a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6v-2z\"/><path d=\"M10 18v3h4v-3\"/></svg>"),
+        AssetType.PaperDispenser => new MarkupString("<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><rect x=\"4\" y=\"4\" width=\"16\" height=\"12\" rx=\"2\"/><path d=\"M7 16v4h10v-4\"/><line x1=\"7\" y1=\"10\" x2=\"17\" y2=\"10\"/></svg>"),
+        AssetType.HandDryer => new MarkupString("<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><rect x=\"6\" y=\"3\" width=\"12\" height=\"12\" rx=\"2\"/><path d=\"M9 18v3M12 18v3M15 18v3\"/></svg>"),
+        _ => new MarkupString("<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><circle cx=\"12\" cy=\"12\" r=\"9\"/></svg>")
     };
 }

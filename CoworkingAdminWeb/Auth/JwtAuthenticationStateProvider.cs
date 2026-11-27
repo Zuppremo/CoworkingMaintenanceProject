@@ -18,7 +18,16 @@ public class JwtAuthenticationStateProvider : AuthenticationStateProvider
     {
         var token = await localStorage.GetItemAsync<string>(TOKEN_KEY);
         var userInfo = await localStorage.GetItemAsync<UserInfo>("userInfo");
-        
+        var tokenExpiry = await localStorage.GetItemAsync<DateTimeOffset?>("tokenExpiry");
+
+        if (tokenExpiry.HasValue && tokenExpiry.Value <= DateTimeOffset.UtcNow)
+        {
+            await localStorage.RemoveItemAsync(TOKEN_KEY);
+            await localStorage.RemoveItemAsync("userInfo");
+            await localStorage.RemoveItemAsync("tokenExpiry");
+            return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+        }
+
         if (string.IsNullOrWhiteSpace(token) || userInfo == null)
         {
             return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));

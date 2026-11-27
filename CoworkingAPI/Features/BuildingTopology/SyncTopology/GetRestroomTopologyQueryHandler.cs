@@ -1,3 +1,4 @@
+using Coworking.Shared.Enums;
 using Coworking.Shared.Models.DTOs.Building;
 using Coworking.Shared.Models.DTOs.Telemetry;
 using CoworkingAPI.Data;
@@ -27,6 +28,16 @@ public class GetRestroomTopologyQueryHandler
             .Where(a => a.RestroomId == restroomId)
             .ToListAsync();
 
+        var assetIds = assets.Select(a => a.Id).ToList();
+        var activeAssetIds = assetIds.Count == 0
+            ? new HashSet<Guid>()
+            : (await context.IssueReports
+                .AsNoTracking()
+                .Where(ir => assetIds.Contains(ir.RestroomAssetId) && ir.Status < ReportStatus.Resolved)
+                .Select(ir => ir.RestroomAssetId)
+                .ToListAsync())
+                .ToHashSet();
+
         return new RestroomLayoutDto
         {
             RestroomId = restroom.Id,
@@ -39,7 +50,7 @@ public class GetRestroomTopologyQueryHandler
                 Type = a.Type,
                 PositionX = a.PositionX,
                 PositionY = a.PositionY,
-                HasActiveIssue = false 
+                HasActiveIssue = activeAssetIds.Contains(a.Id)
             }).ToList()
         };
     }

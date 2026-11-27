@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CoworkingAdminWeb</title>
+    <title>Urban 165 | Facility Ops</title>
     <base href="/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="preload" id="webassembly" />
     <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="css/app.css" />
@@ -16,17 +19,25 @@
 
 <body>
     <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
+        <div class="app-boot-screen">
+            <div class="boot-mark">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#14B8A6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                    <path d="M14 17.5h7M17.5 14v7" />
+                </svg>
+            </div>
+            <div class="boot-title">URBAN 165</div>
+            <div class="boot-sub">Cargando plataforma de operaciones...</div>
+            <div class="boot-bar"><div class="boot-bar-fill"></div></div>
+        </div>
     </div>
 
     <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="." class="reload">Reload</a>
-        <span class="dismiss">🗙</span>
+        Ha ocurrido un error inesperado.
+        <a href="." class="reload">Recargar</a>
+        <span class="dismiss">Cerrar</span>
     </div>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
     <script>
