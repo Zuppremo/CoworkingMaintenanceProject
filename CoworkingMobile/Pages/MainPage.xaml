@@ -2,7 +2,9 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:CoworkingMobile.ViewModels"
+             xmlns:pages="clr-namespace:CoworkingMobile.Pages"
              xmlns:fonts="clr-namespace:Fonts"
+             x:Name="DashboardPage"
              x:Class="CoworkingMobile.Pages.MainPage"
              x:DataType="vm:CleaningDashboardViewModel"
              Shell.NavBarIsVisible="False"
@@ -186,10 +188,9 @@
                     </Border>
 
                     <!-- Issue Cards -->
-                    <BindableLayout.ItemsSource>
-                        <Binding Path="ActiveIssues" />
-                    </BindableLayout.ItemsSource>
-                    <BindableLayout.ItemTemplate>
+                    <VerticalStackLayout Spacing="12"
+                                         BindableLayout.ItemsSource="{Binding ActiveIssues}">
+                        <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="vm:IssueItemViewModel">
                             <Border BackgroundColor="White"
                                     StrokeShape="RoundRectangle 16"
@@ -295,7 +296,7 @@
                                                     HeightRequest="42"
                                                     CornerRadius="10"
                                                     IsVisible="{Binding CanAttend}"
-                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CleaningDashboardViewModel}}, Path=AttendIssueCommand}"
+                                                    Command="{Binding Source={x:Reference DashboardPage}, Path=ViewModel.AttendIssueCommand, x:DataType=pages:MainPage}"
                                                     CommandParameter="{Binding .}" />
 
                                             <Button Grid.Column="1"
@@ -306,14 +307,15 @@
                                                     TextColor="White"
                                                     HeightRequest="42"
                                                     CornerRadius="10"
-                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CleaningDashboardViewModel}}, Path=ResolveIssueCommand}"
+                                                    Command="{Binding Source={x:Reference DashboardPage}, Path=ViewModel.ResolveIssueCommand, x:DataType=pages:MainPage}"
                                                     CommandParameter="{Binding .}" />
                                         </Grid>
                                     </VerticalStackLayout>
                                 </Grid>
                             </Border>
                         </DataTemplate>
-                    </BindableLayout.ItemTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
 
                 </VerticalStackLayout>
             </ScrollView>

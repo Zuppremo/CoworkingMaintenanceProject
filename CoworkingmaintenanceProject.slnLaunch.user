@@ -1,0 +1,42 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "Tests\\Coworking.Shared.Tests\\Coworking.Shared.Tests.csproj",
+        "Action": "Start",
+        "DebugTarget": "Coworking.Shared.Tests"
+      },
+      {
+        "Path": "Tests\\CoworkingAPI.Tests\\CoworkingAPI.Tests.csproj",
+        "Action": "Start",
+        "DebugTarget": "CoworkingAPI.Tests"
+      },
+      {
+        "Path": "Tests\\CoworkingAdminWeb.Tests\\CoworkingAdminWeb.Tests.csproj",
+        "Action": "Start",
+        "DebugTarget": "CoworkingAdminWeb.Tests"
+      },
+      {
+        "Path": "Tests\\CoworkingMobile.Tests\\CoworkingMobile.Tests.csproj",
+        "Action": "Start",
+        "DebugTarget": "CoworkingMobile.Tests"
+      },
+      {
+        "Path": "CoworkingAPI\\CoworkingAPI.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      },
+      {
+        "Path": "CoworkingAdminWeb\\CoworkingAdminWeb.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      },
+      {
+        "Path": "CoworkingMobile\\CoworkingMobile.csproj",
+        "Action": "Start",
+        "DebugTarget": "Windows Machine"
+      }
+    ]
+  }
+]
